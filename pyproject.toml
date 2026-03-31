@@ -28,6 +28,12 @@ dependencies = [
   "torch-spline-conv",
 ]
 
+[project.scripts]
+p1-train = "scripts.p1_train:main"
+p2-propose = "scripts.p2_propose:main"
+p3-assembly-design = "scripts.p3_assembly_design:main"
+plm-zeroshot-ensemble = "scripts.plm_zeroshot_ensemble:main"
+
 [[tool.uv.index]]
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
@@ -47,10 +53,11 @@ torch-sparse = { index = "pyg-cu124" }
 torch-spline-conv = { index = "pyg-cu124" }
 
 [tool.ruff.lint.per-file-ignores]
-# Notebooks use star imports for interactive convenience
 "notebooks/**" = ["F403", "F405"]
-# app.py imports multievolve namespace for potential future use
 "app.py" = ["F403", "F405"]
+
+[tool.setuptools.packages.find]
+include = ["multievolve*", "scripts*"]
 
 [build-system]
 requires = ["setuptools>=64.0"]
