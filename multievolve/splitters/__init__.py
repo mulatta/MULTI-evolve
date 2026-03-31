@@ -1,1 +1,1 @@
-from multievolve.splitters.base_splitters import *
+from multievolve.splitters.base_splitters import *  # noqa: F403

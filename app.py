@@ -11,35 +11,34 @@ This app provides an interactive web app to:
 import streamlit as st
 import pandas as pd
 from Bio import SeqIO
-import os
-import wandb
 from pathlib import Path
 import subprocess
 
-from multievolve.splitters import *
-from multievolve.featurizers import *
-from multievolve.predictors import *
-from multievolve.proposers import *
+from multievolve.splitters import *  # noqa: F403
+from multievolve.featurizers import *  # noqa: F403
+from multievolve.predictors import *  # noqa: F403
+from multievolve.proposers import *  # noqa: F403
+
 
 def setup_page():
     """Configure basic Streamlit page settings"""
-    st.set_page_config(
-        page_title="MULTI-evolve",
-        page_icon="🧬",
-        layout="wide"
-    )
+    st.set_page_config(page_title="MULTI-evolve", page_icon="🧬", layout="wide")
 
     # Custom branded header with subtitle
-    st.markdown("""
+    st.markdown(
+        """
         <h1 style="margin-bottom: 0; padding-bottom: 0;">MULTI-evolve</h1>
         <p style="color: #666; margin-top: 0.2rem; font-size: 1.05rem;">
             A framework for engineering hyperactive multi-mutants
         </p>
         <hr style="margin-top: 0.5rem; margin-bottom: 0.5rem; border: none; border-top: 1px solid #e0e0e0;">
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Global styles — injected once, available to all tabs
-    st.markdown("""
+    st.markdown(
+        """
         <style>
             /* Terminal output container (used by all tabs) */
             .terminal-container {
@@ -89,70 +88,85 @@ def setup_page():
                 font-weight: 600;
             }
         </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
+
 
 def create_protein_directory(protein_name):
     """
     Create directory structure for a protein project
-    
+
     Args:
         protein_name (str): Name of the protein project
-        
+
     Returns:
         Path: Path object pointing to protein directory
     """
     protein_dir = Path("proteins") / protein_name
     protein_dir.mkdir(parents=True, exist_ok=True)
-    
+
     return protein_dir
+
 
 def save_uploaded_file(uploaded_file, protein_dir):
     """
     Save an uploaded file to the protein directory
-    
+
     Args:
         uploaded_file (UploadedFile): Streamlit uploaded file
         protein_dir (Path): Path to protein directory
-        
+
     Returns:
         Path: Path to saved file
     """
 
     if uploaded_file is None:
         return None
-        
+
     save_path = protein_dir / uploaded_file.name
     with open(save_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
     return save_path
 
-def validate_files(protein_name, wt_files_aa=None, wt_file_aa=None,wt_file_dna=None, dataset_file=None, mutations_file=None, pdb_files=None):
+
+def validate_files(
+    protein_name,
+    wt_files_aa=None,
+    wt_file_aa=None,
+    wt_file_dna=None,
+    dataset_file=None,
+    mutations_file=None,
+    pdb_files=None,
+):
     """Validate uploaded files with protein-specific directory handling"""
     try:
         protein_dir = create_protein_directory(protein_name)
-        
+
         # Validate and save FASTA
         if wt_files_aa:
             for wt_file_aa in wt_files_aa:
                 fasta_path = save_uploaded_file(wt_file_aa, protein_dir)
-                wt_seq_aa = str(SeqIO.read(fasta_path, "fasta").seq.upper())
+                str(SeqIO.read(fasta_path, "fasta").seq.upper())
         elif wt_file_aa:
             fasta_path = save_uploaded_file(wt_file_aa, protein_dir)
-            wt_seq_aa = str(SeqIO.read(fasta_path, "fasta").seq.upper())
+            str(SeqIO.read(fasta_path, "fasta").seq.upper())
 
         if wt_file_dna:
             fasta_path = save_uploaded_file(wt_file_dna, protein_dir)
-            wt_seq_dna = str(SeqIO.read(fasta_path, "fasta").seq.upper())
+            str(SeqIO.read(fasta_path, "fasta").seq.upper())
 
         # Validate and save dataset CSV
         if dataset_file:
             dataset_path = save_uploaded_file(dataset_file, protein_dir)
             df = pd.read_csv(dataset_path)
-            required_cols = ['mutation', 'property_value']
+            required_cols = ["mutation", "property_value"]
             if not all(col in df.columns for col in required_cols):
-                st.error("Training dataset must contain 'mutation' and 'property_value' columns")
+                st.error(
+                    "Training dataset must contain 'mutation' and 'property_value' columns"
+                )
                 return False
-                
+
         # Validate and save mutation pool
         if mutations_file:
             pool_path = save_uploaded_file(mutations_file, protein_dir)
@@ -160,30 +174,41 @@ def validate_files(protein_name, wt_files_aa=None, wt_file_aa=None,wt_file_dna=N
             if df.empty:
                 st.error("Mutation pool file is empty")
                 return False
-            
+
         if pdb_files:
             for pdb_file in pdb_files:
                 pdb_path = save_uploaded_file(pdb_file, protein_dir)
-                if not str(pdb_path).endswith('.pdb') and not str(pdb_path).endswith('.cif'):
+                if not str(pdb_path).endswith(".pdb") and not str(pdb_path).endswith(
+                    ".cif"
+                ):
                     st.error("PDB/CIF files must be in PDB or CIF format")
                     return False
-                
+
         return True
-        
+
     except Exception as e:
         st.error(f"File validation error: {str(e)}")
         return False
+
 
 def train_models():
     """Train neural network models section"""
 
     with st.form("train_models_form"):
-        col1, col2 = st.columns([2,3])
+        col1, col2 = st.columns([2, 3])
 
         with col1:
             protein_name = st.text_input("Protein Name")
-            wt_files_aa = st.file_uploader("Upload Wildtype Amino Acid Sequence FASTA", accept_multiple_files=True, type=['fasta', 'fa'])
-            dataset_file = st.file_uploader("Upload Training Dataset (CSV)", type=['csv'], accept_multiple_files=False)
+            wt_files_aa = st.file_uploader(
+                "Upload Wildtype Amino Acid Sequence FASTA",
+                accept_multiple_files=True,
+                type=["fasta", "fa"],
+            )
+            dataset_file = st.file_uploader(
+                "Upload Training Dataset (CSV)",
+                type=["csv"],
+                accept_multiple_files=False,
+            )
             st.divider()
             experiment_name = st.text_input("Experiment Name", value="test")
             wandb_key = st.text_input("WandB API Key", type="password")
@@ -209,32 +234,45 @@ def train_models():
         submitted = st.form_submit_button("Train Models", type="primary")
 
     if submitted:
-        if not all([experiment_name, protein_name, wandb_key, wt_files_aa, dataset_file]):
+        if not all(
+            [experiment_name, protein_name, wandb_key, wt_files_aa, dataset_file]
+        ):
             st.error("Please fill in all required fields")
             return
-            
-        if not validate_files(protein_name, wt_files_aa=wt_files_aa, dataset_file=dataset_file):
+
+        if not validate_files(
+            protein_name, wt_files_aa=wt_files_aa, dataset_file=dataset_file
+        ):
             return
-            
+
         try:
             protein_dir = Path("proteins") / protein_name
             wt_paths = [protein_dir / wt_file_aa.name for wt_file_aa in wt_files_aa]
             dataset_path = protein_dir / dataset_file.name
-            
+
             # Force wandb relogin
-            subprocess.run(["wandb", "login", "--relogin", wandb_key], capture_output=True)
-            
+            subprocess.run(
+                ["wandb", "login", "--relogin", wandb_key], capture_output=True
+            )
+
             # Show the command that will be executed
             command = [
-                "python", "scripts/p1_train.py",
-                "--experiment-name", experiment_name,
-                "--protein-name", protein_name,
-                "--wt-files", ",".join(str(wt_path) for wt_path in wt_paths),
-                "--training-dataset-fname", str(dataset_path),
-                "--wandb-key", wandb_key,
-                "--mode", mode
+                "python",
+                "scripts/p1_train.py",
+                "--experiment-name",
+                experiment_name,
+                "--protein-name",
+                protein_name,
+                "--wt-files",
+                ",".join(str(wt_path) for wt_path in wt_paths),
+                "--training-dataset-fname",
+                str(dataset_path),
+                "--wandb-key",
+                wandb_key,
+                "--mode",
+                mode,
             ]
-            
+
             st.subheader("Terminal Output:")
             st.code(f"$ {' '.join(command)}", language="bash")
 
@@ -249,46 +287,58 @@ def train_models():
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1,
-                    universal_newlines=True
+                    universal_newlines=True,
                 )
-                
+
                 output_lines = []
-                
+
                 # Stream output in real-time
-                for line in iter(process.stdout.readline, ''):
+                for line in iter(process.stdout.readline, ""):
                     output_lines.append(line.rstrip())
                     # Update the terminal display with all output so far
-                    terminal_text = '\n'.join(output_lines)
-                    terminal_output.markdown(f'<div class="terminal-container"><pre><code>{terminal_text}</code></pre></div>', 
-                                          unsafe_allow_html=True)
-                
+                    terminal_text = "\n".join(output_lines)
+                    terminal_output.markdown(
+                        f'<div class="terminal-container"><pre><code>{terminal_text}</code></pre></div>',
+                        unsafe_allow_html=True,
+                    )
+
                 process.wait()
-                
+
                 # Keep the final scrollable output instead of replacing with code block
-                final_output = '\n'.join(output_lines)
-                terminal_output.markdown(f'<div class="terminal-container"><pre><code>{final_output}</code></pre></div>', 
-                                      unsafe_allow_html=True)
-                
+                final_output = "\n".join(output_lines)
+                terminal_output.markdown(
+                    f'<div class="terminal-container"><pre><code>{final_output}</code></pre></div>',
+                    unsafe_allow_html=True,
+                )
+
                 if process.returncode == 0:
                     st.success("✅ Model training completed successfully!")
                 else:
                     st.error(f"❌ Training failed with exit code: {process.returncode}")
-            
+
         except Exception as e:
             st.error(f"Error during training: {str(e)}")
             st.exception(e)
+
 
 def propose_mutations():
     """Propose mutations section"""
 
     with st.form("propose_mutations_form"):
-        col1, col2 = st.columns([2,3])
+        col1, col2 = st.columns([2, 3])
 
         with col1:
             protein_name = st.text_input("Protein Name", key="propose_protein")
-            wt_files_aa = st.file_uploader("Upload Wildtype Amino Acid Sequence FASTA", accept_multiple_files=True, type=['fasta', 'fa'], key="propose_wt")
-            dataset_file = st.file_uploader("Upload Training Dataset (CSV)", type=['csv'], key="propose_dataset")
-            mutation_pool = st.file_uploader("Upload Mutation Pool (CSV)", type=['csv'])
+            wt_files_aa = st.file_uploader(
+                "Upload Wildtype Amino Acid Sequence FASTA",
+                accept_multiple_files=True,
+                type=["fasta", "fa"],
+                key="propose_wt",
+            )
+            dataset_file = st.file_uploader(
+                "Upload Training Dataset (CSV)", type=["csv"], key="propose_dataset"
+            )
+            mutation_pool = st.file_uploader("Upload Mutation Pool (CSV)", type=["csv"])
             st.divider()
             experiment_name = st.text_input("Experiment Name", key="propose_exp")
             top_muts = st.number_input("Top Mutations per Load", min_value=1, value=3)
@@ -318,13 +368,27 @@ def propose_mutations():
         submitted = st.form_submit_button("Propose Mutations", type="primary")
 
     if submitted:
-        if not all([experiment_name, protein_name, wt_files_aa, dataset_file, mutation_pool, export_name]):
+        if not all(
+            [
+                experiment_name,
+                protein_name,
+                wt_files_aa,
+                dataset_file,
+                mutation_pool,
+                export_name,
+            ]
+        ):
             st.error("Please fill in all required fields")
             return
-            
-        if not validate_files(protein_name, wt_files_aa=wt_files_aa, dataset_file=dataset_file, mutations_file=mutation_pool):
+
+        if not validate_files(
+            protein_name,
+            wt_files_aa=wt_files_aa,
+            dataset_file=dataset_file,
+            mutations_file=mutation_pool,
+        ):
             return
-            
+
         try:
             protein_dir = Path("proteins") / protein_name
             wt_paths = [protein_dir / wt_file_aa.name for wt_file_aa in wt_files_aa]
@@ -333,14 +397,22 @@ def propose_mutations():
 
             # Show the command that will be executed
             command = [
-                "python", "scripts/p2_propose.py",
-                "--experiment-name", experiment_name,
-                "--protein-name", protein_name,
-                "--wt-files", ",".join(str(wt_path) for wt_path in wt_paths),
-                "--training-dataset", str(dataset_path),
-                "--mutation-pool", str(mutation_pool_path),
-                "--top-muts-per-load", str(top_muts),
-                "--export-name", export_name
+                "python",
+                "scripts/p2_propose.py",
+                "--experiment-name",
+                experiment_name,
+                "--protein-name",
+                protein_name,
+                "--wt-files",
+                ",".join(str(wt_path) for wt_path in wt_paths),
+                "--training-dataset",
+                str(dataset_path),
+                "--mutation-pool",
+                str(mutation_pool_path),
+                "--top-muts-per-load",
+                str(top_muts),
+                "--export-name",
+                export_name,
             ]
 
             st.subheader("Terminal Output:")
@@ -357,45 +429,58 @@ def propose_mutations():
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1,
-                    universal_newlines=True
+                    universal_newlines=True,
                 )
 
                 output_lines = []
-                
+
                 # Stream output in real-time
-                for line in iter(process.stdout.readline, ''):
+                for line in iter(process.stdout.readline, ""):
                     output_lines.append(line.rstrip())
                     # Update the terminal display with all output so far
-                    terminal_text = '\n'.join(output_lines)
-                    terminal_output.markdown(f'<div class="terminal-container"><pre><code>{terminal_text}</code></pre></div>', 
-                                          unsafe_allow_html=True)
-                    
+                    terminal_text = "\n".join(output_lines)
+                    terminal_output.markdown(
+                        f'<div class="terminal-container"><pre><code>{terminal_text}</code></pre></div>',
+                        unsafe_allow_html=True,
+                    )
+
                 process.wait()
-                
+
                 # Keep the final scrollable output instead of replacing with code block
-                final_output = '\n'.join(output_lines)
-                terminal_output.markdown(f'<div class="terminal-container"><pre><code>{final_output}</code></pre></div>', 
-                                      unsafe_allow_html=True)
-                
+                final_output = "\n".join(output_lines)
+                terminal_output.markdown(
+                    f'<div class="terminal-container"><pre><code>{final_output}</code></pre></div>',
+                    unsafe_allow_html=True,
+                )
+
                 if process.returncode == 0:
                     st.success("✅ MULTI-evolve variants proposed successfully!")
                 else:
-                    st.error(f"❌ MULTI-evolve variants proposal failed with exit code: {process.returncode}")
+                    st.error(
+                        f"❌ MULTI-evolve variants proposal failed with exit code: {process.returncode}"
+                    )
 
         except Exception as e:
             st.error(f"Error during mutation proposal: {str(e)}")
             st.exception(e)
 
+
 def design_oligos():
     """Design MULTI-assembly oligos section"""
 
     with st.form("design_oligos_form"):
-        col1, col2 = st.columns([2,3])
+        col1, col2 = st.columns([2, 3])
 
         with col1:
             protein_name = st.text_input("Protein Name", key="MULTI-assembly_protein")
-            wt_file_dna = st.file_uploader("Upload Wildtype DNA Sequence FASTA", type=['fasta', 'fa'], key="oligo_wt")
-            mutations_file = st.file_uploader("Upload Mutations File (CSV)", type=['csv'])
+            wt_file_dna = st.file_uploader(
+                "Upload Wildtype DNA Sequence FASTA",
+                type=["fasta", "fa"],
+                key="oligo_wt",
+            )
+            mutations_file = st.file_uploader(
+                "Upload Mutations File (CSV)", type=["csv"]
+            )
             st.divider()
             species = st.selectbox("Species", ["human", "ecoli", "yeast"])
             tm = st.number_input("Melting Temperature (°C)", value=80.0)
@@ -439,10 +524,12 @@ def design_oligos():
         if not all([protein_name, mutations_file, wt_file_dna]):
             st.error("Please fill in all required fields")
             return
-            
-        if not validate_files(protein_name, wt_file_dna=wt_file_dna, mutations_file=mutations_file):
+
+        if not validate_files(
+            protein_name, wt_file_dna=wt_file_dna, mutations_file=mutations_file
+        ):
             return
-            
+
         try:
             protein_dir = Path("proteins") / protein_name
             mutations_path = protein_dir / mutations_file.name
@@ -450,14 +537,22 @@ def design_oligos():
 
             # Show the command that will be executed
             command = [
-                "python", "scripts/p3_assembly_design.py",
-                "--mutations-file", str(mutations_path),
-                "--wt-fasta", str(wt_path), 
-                "--overhang", str(overhang),
-                "--species", species,
-                "--oligo-direction", oligo_direction,
-                "--tm", str(tm),
-                "--output", output_type
+                "python",
+                "scripts/p3_assembly_design.py",
+                "--mutations-file",
+                str(mutations_path),
+                "--wt-fasta",
+                str(wt_path),
+                "--overhang",
+                str(overhang),
+                "--species",
+                species,
+                "--oligo-direction",
+                oligo_direction,
+                "--tm",
+                str(tm),
+                "--output",
+                output_type,
             ]
 
             st.subheader("Terminal Output:")
@@ -474,50 +569,74 @@ def design_oligos():
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1,
-                    universal_newlines=True
+                    universal_newlines=True,
                 )
 
                 output_lines = []
-                
+
                 # Stream output in real-time
-                for line in iter(process.stdout.readline, ''):
+                for line in iter(process.stdout.readline, ""):
                     output_lines.append(line.rstrip())
                     # Update the terminal display with all output so far
-                    terminal_text = '\n'.join(output_lines)
-                    terminal_output.markdown(f'<div class="terminal-container"><pre><code>{terminal_text}</code></pre></div>', 
-                                          unsafe_allow_html=True)
-                
+                    terminal_text = "\n".join(output_lines)
+                    terminal_output.markdown(
+                        f'<div class="terminal-container"><pre><code>{terminal_text}</code></pre></div>',
+                        unsafe_allow_html=True,
+                    )
+
                 process.wait()
-                
+
                 # Keep the final scrollable output instead of replacing with code block
-                final_output = '\n'.join(output_lines)
-                terminal_output.markdown(f'<div class="terminal-container"><pre><code>{final_output}</code></pre></div>', 
-                                      unsafe_allow_html=True)
-                
+                final_output = "\n".join(output_lines)
+                terminal_output.markdown(
+                    f'<div class="terminal-container"><pre><code>{final_output}</code></pre></div>',
+                    unsafe_allow_html=True,
+                )
+
                 if process.returncode == 0:
                     st.success("✅ Oligo design completed successfully!")
                 else:
-                    st.error(f"❌ Oligo design failed with exit code: {process.returncode}")
+                    st.error(
+                        f"❌ Oligo design failed with exit code: {process.returncode}"
+                    )
 
         except Exception as e:
             st.error(f"Error during oligo design: {str(e)}")
             st.exception(e)
 
+
 def zeroshot_predictions():
     """Perform zero-shot predictions section"""
 
     with st.form("zeroshot_predictions_form"):
-        col1, col2 = st.columns([2,3])
+        col1, col2 = st.columns([2, 3])
 
         with col1:
             protein_name = st.text_input("Protein Name", key="zeroshot_protein")
-            wt_file_aa = st.file_uploader("Upload Wildtype Amino Acid Sequence FASTA", type=['fasta', 'fa'], key="zeroshot_wt")
-            pdb_files = st.file_uploader("Upload PDB/CIF Files", type=['pdb', 'cif'], accept_multiple_files=True, key="zeroshot_pdb")
+            wt_file_aa = st.file_uploader(
+                "Upload Wildtype Amino Acid Sequence FASTA",
+                type=["fasta", "fa"],
+                key="zeroshot_wt",
+            )
+            pdb_files = st.file_uploader(
+                "Upload PDB/CIF Files",
+                type=["pdb", "cif"],
+                accept_multiple_files=True,
+                key="zeroshot_pdb",
+            )
             st.divider()
             chain_id = st.text_input("Chain ID", value="A", key="zeroshot_chain")
             variants = st.number_input("Number of Variants", min_value=1, value=24)
-            excluded_pos = st.text_input("Excluded Positions (comma-separated, optional)", value="1,10,30", key="zeroshot_excluded")
-            norm_method = st.selectbox("Normalizing Method", ["aa_substitution_type", "aa_mutation"], key="zeroshot_norm")
+            excluded_pos = st.text_input(
+                "Excluded Positions (comma-separated, optional)",
+                value="1,10,30",
+                key="zeroshot_excluded",
+            )
+            norm_method = st.selectbox(
+                "Normalizing Method",
+                ["aa_substitution_type", "aa_mutation"],
+                key="zeroshot_norm",
+            )
 
         with col2:
             st.markdown("""
@@ -548,26 +667,31 @@ def zeroshot_predictions():
         if not all([protein_name, wt_file_aa, pdb_files, chain_id]):
             st.error("Please fill in all required fields")
             return
-            
+
         if not validate_files(protein_name, wt_file_aa=wt_file_aa, pdb_files=pdb_files):
             return
-            
+
         try:
             protein_dir = Path("proteins") / protein_name
             wt_path = protein_dir / wt_file_aa.name
             pdb_paths = [protein_dir / pdb_file.name for pdb_file in pdb_files]
-            
-            
+
             # Show the command that will be executed
             command = [
-                "python", "scripts/plm_zeroshot_ensemble.py",
-                "--wt-file", str(wt_path),
-                "--pdb-files", ",".join(str(path) for path in pdb_paths),
-                "--chain-id", chain_id,
-                "--variants", str(variants),
-                "--normalizing-method", norm_method
+                "python",
+                "scripts/plm_zeroshot_ensemble.py",
+                "--wt-file",
+                str(wt_path),
+                "--pdb-files",
+                ",".join(str(path) for path in pdb_paths),
+                "--chain-id",
+                chain_id,
+                "--variants",
+                str(variants),
+                "--normalizing-method",
+                norm_method,
             ]
-            
+
             # Only add excluded-positions flag if it's provided and not empty
             if excluded_pos.strip():
                 command.extend(["--excluded-positions", excluded_pos])
@@ -586,34 +710,41 @@ def zeroshot_predictions():
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1,
-                    universal_newlines=True
+                    universal_newlines=True,
                 )
 
                 output_lines = []
-                
+
                 # Stream output in real-time
-                for line in iter(process.stdout.readline, ''):
+                for line in iter(process.stdout.readline, ""):
                     output_lines.append(line.rstrip())
                     # Update the terminal display with all output so far
-                    terminal_text = '\n'.join(output_lines)
-                    terminal_output.markdown(f'<div class="terminal-container"><pre><code>{terminal_text}</code></pre></div>', 
-                                          unsafe_allow_html=True)
-                
+                    terminal_text = "\n".join(output_lines)
+                    terminal_output.markdown(
+                        f'<div class="terminal-container"><pre><code>{terminal_text}</code></pre></div>',
+                        unsafe_allow_html=True,
+                    )
+
                 process.wait()
-                
+
                 # Keep the final scrollable output instead of replacing with code block
-                final_output = '\n'.join(output_lines)
-                terminal_output.markdown(f'<div class="terminal-container"><pre><code>{final_output}</code></pre></div>', 
-                                      unsafe_allow_html=True)
-                
+                final_output = "\n".join(output_lines)
+                terminal_output.markdown(
+                    f'<div class="terminal-container"><pre><code>{final_output}</code></pre></div>',
+                    unsafe_allow_html=True,
+                )
+
                 if process.returncode == 0:
                     st.success("✅ Zero-shot predictions completed successfully!")
                 else:
-                    st.error(f"❌ Zero-shot predictions failed with exit code: {process.returncode}")
+                    st.error(
+                        f"❌ Zero-shot predictions failed with exit code: {process.returncode}"
+                    )
 
         except Exception as e:
             st.error(f"Error during zero-shot predictions: {str(e)}")
             st.exception(e)
+
 
 def about():
     st.markdown("""
@@ -632,6 +763,7 @@ def about():
     2. Perform the Protein Language Model Zero-shot Ensemble Approach used in the MULTI-evolve framework.
     """)
 
+
 def file_locations():
     st.markdown("### Where are my files saved?")
     st.markdown("""
@@ -642,7 +774,8 @@ def file_locations():
     Here is what that folder looks like and what each part contains:
     """)
 
-    st.code("""
+    st.code(
+        """
 proteins/
 └── your_protein_name/
     │
@@ -663,7 +796,9 @@ proteins/
     ├── cloning_sheet.csv            ← Which oligos to pool for each variant
     ├── oligos.csv                   ← Oligo sequences for ordering
     └── plm_zeroshot_ensemble_nominated_mutations.csv ← Nominated mutations from PLM ensemble
-    """, language=None)
+    """,
+        language=None,
+    )
 
     st.markdown("#### Quick guide to finding your results")
 
@@ -694,19 +829,22 @@ proteins/
             "`proteins/your_protein_name/plm_zeroshot_ensemble_nominated_mutations.csv`"
         )
 
+
 def main():
     """Main function to run the Streamlit app"""
     setup_page()
-    
+
     # Create tabs for different functionalities
-    tab5, tab1, tab2, tab3, tab4, tab6 = st.tabs([
-        "About",
-        "Train Models",
-        "Propose Multi-mutants",
-        "Generate MULTI-assembly Oligos",
-        "Perform PLM Zero-shot Ensemble",
-        "Output Files",
-    ])
+    tab5, tab1, tab2, tab3, tab4, tab6 = st.tabs(
+        [
+            "About",
+            "Train Models",
+            "Propose Multi-mutants",
+            "Generate MULTI-assembly Oligos",
+            "Perform PLM Zero-shot Ensemble",
+            "Output Files",
+        ]
+    )
 
     with tab5:
         about()
@@ -725,7 +863,6 @@ def main():
 
     with tab6:
         file_locations()
-        
 
 
 if __name__ == "__main__":

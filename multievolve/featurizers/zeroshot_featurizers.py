@@ -4,6 +4,7 @@ from multievolve.featurizers.base_featurizers import BaseFeaturizer
 from multievolve.featurizers.model_choices import FEATURE_MODELS
 from multievolve.utils.data_utils import find_mutations_multithreaded
 
+
 class ZeroshotBaseFeaturizer(BaseFeaturizer):
     """Base class for zero-shot featurizers.
 
@@ -36,7 +37,7 @@ class ZeroshotBaseFeaturizer(BaseFeaturizer):
         model_locations=None,
         wt_file=None,
         model_type="zeroshot",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -68,12 +69,12 @@ class ZeroshotBaseFeaturizer(BaseFeaturizer):
         Returns:
             np.ndarray: Zero-shot prediction scores.
         """
-        assert (self.wt_file is not None) or (
-            wt_file is not None
-        ), "No wt sequence provided."
-        assert (self.model_locations is not None) or (
-            model_locations is not None
-        ), "No model locations provided."
+        assert (self.wt_file is not None) or (wt_file is not None), (
+            "No wt sequence provided."
+        )
+        assert (self.model_locations is not None) or (model_locations is not None), (
+            "No model locations provided."
+        )
 
         wt_file = wt_file or self.wt_file
         model_locations = model_locations or self.model_locations
@@ -86,7 +87,7 @@ class ZeroshotBaseFeaturizer(BaseFeaturizer):
         # make sure to remove model_locations and sequence from kwargs
         kwargs.pop("model_locations", None)
         kwargs.pop("sequence", None)
-        kwargs['device'] = self.device
+        kwargs["device"] = self.device
         X = zeroshot_model(
             mutations, model_locations=model_locations, sequence=wt_seq, **kwargs
         )
@@ -127,7 +128,7 @@ class ZeroshotESMFeaturizer(ZeroshotBaseFeaturizer):
         model_locations=FEATURE_MODELS["zeroshot_esm"],
         wt_file=None,
         model_type="zeroshot_esm",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -144,7 +145,7 @@ class ZeroshotESMFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=model_locations,
             wt_file=wt_file,
             model_type=model_type,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, **kwargs):
@@ -165,7 +166,7 @@ class ZeroshotESMFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=self.model_locations,
             wt_file=self.wt_file,
             zeroshot_model=zero_shot,
-            **kwargs
+            **kwargs,
         )
         return X
 
@@ -204,7 +205,7 @@ class ZeroshotMSAFeaturizer(ZeroshotBaseFeaturizer):
         wt_file=None,
         msa_file=None,
         model_type="zeroshot_msa",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -222,7 +223,7 @@ class ZeroshotMSAFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=model_locations,
             wt_file=wt_file,
             model_type=model_type,
-            **kwargs
+            **kwargs,
         )
         self.msa_file = msa_file
 
@@ -245,7 +246,7 @@ class ZeroshotMSAFeaturizer(ZeroshotBaseFeaturizer):
             wt_file=self.wt_file,
             zeroshot_model=zero_shot,
             msa_file=self.msa_file,
-            **kwargs
+            **kwargs,
         )
         return X
 
@@ -281,7 +282,7 @@ class ZeroshotCSCSFeaturizer(ZeroshotBaseFeaturizer):
         model_locations=None,
         wt_file=None,
         model_type="zeroshot_cscs",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -298,7 +299,7 @@ class ZeroshotCSCSFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=model_locations,
             wt_file=wt_file,
             model_type=model_type,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, **kwargs):
@@ -319,7 +320,7 @@ class ZeroshotCSCSFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=self.model_locations,
             wt_file=self.wt_file,
             zeroshot_model=zero_shot,
-            **kwargs
+            **kwargs,
         )
         return X
 
@@ -355,7 +356,7 @@ class ZeroshotCSCSGramFeaturizer(ZeroshotBaseFeaturizer):
         model_locations=None,
         wt_file=None,
         model_type="zeroshot_cscs_gram",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -372,7 +373,7 @@ class ZeroshotCSCSGramFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=model_locations,
             wt_file=wt_file,
             model_type=model_type,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, **kwargs):
@@ -393,7 +394,7 @@ class ZeroshotCSCSGramFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=self.model_locations,
             wt_file=self.wt_file,
             zeroshot_model=zero_shot,
-            **kwargs
+            **kwargs,
         )
         return X
 
@@ -429,7 +430,7 @@ class ZeroshotCSCSSemFeaturizer(ZeroshotBaseFeaturizer):
         model_locations=None,
         wt_file=None,
         model_type="zeroshot_cscs_sem",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -446,7 +447,7 @@ class ZeroshotCSCSSemFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=model_locations,
             wt_file=wt_file,
             model_type=model_type,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, **kwargs):
@@ -467,7 +468,7 @@ class ZeroshotCSCSSemFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=self.model_locations,
             wt_file=self.wt_file,
             zeroshot_model=zero_shot,
-            **kwargs
+            **kwargs,
         )
         return X
 
@@ -503,7 +504,7 @@ class ZeroshotProseFeaturizer(ZeroshotBaseFeaturizer):
         model_locations=FEATURE_MODELS["zeroshot_prose"],
         wt_file=None,
         model_type="zeroshot_prose",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -520,7 +521,7 @@ class ZeroshotProseFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=model_locations,
             wt_file=wt_file,
             model_type=model_type,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, **kwargs):
@@ -541,7 +542,7 @@ class ZeroshotProseFeaturizer(ZeroshotBaseFeaturizer):
             model_locations=self.model_locations,
             wt_file=self.wt_file,
             zeroshot_model=zero_shot,
-            **kwargs
+            **kwargs,
         )
         return X
 
@@ -582,8 +583,8 @@ class ZeroshotESMIFFeaturizer(ZeroshotBaseFeaturizer):
         wt_file=None,
         model_type="zeroshot_esmif",
         pdb_file=None,
-        chain_id='A',
-        **kwargs
+        chain_id="A",
+        **kwargs,
     ):
         """
         Args:
@@ -604,7 +605,7 @@ class ZeroshotESMIFFeaturizer(ZeroshotBaseFeaturizer):
             model_type=model_type,
             pdb_file=pdb_file,
             chain_id=chain_id,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, **kwargs):
@@ -627,6 +628,6 @@ class ZeroshotESMIFFeaturizer(ZeroshotBaseFeaturizer):
             zeroshot_model=zero_shot,
             pdb_file=self.pdb_file,
             chain_id=self.chain_id,
-            **kwargs
+            **kwargs,
         )
         return X

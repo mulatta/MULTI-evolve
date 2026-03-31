@@ -32,7 +32,14 @@ class BaseFeaturizer(ABC):
     features = featurizer.featurize(sequences)
     """
 
-    def __init__(self, model_type=None, protein=None, use_cache=False, flatten_features=False, **kwargs):
+    def __init__(
+        self,
+        model_type=None,
+        protein=None,
+        use_cache=False,
+        flatten_features=False,
+        **kwargs,
+    ):
         """
         Args:
             model_type (str): Type of featurization model.
@@ -72,9 +79,9 @@ class BaseFeaturizer(ABC):
         """
         print("Loading features...")
 
-        assert (
-            self.protein is not None
-        ), "No protein specified to cache. Either specify a protein or set use_cache to False."
+        assert self.protein is not None, (
+            "No protein specified to cache. Either specify a protein or set use_cache to False."
+        )
         original_seqs = seqs
         cache = load_cache(self.model_type, self.protein)
         seq_to_feature = {seq: cache[seq] for seq in seqs if seq in cache}
@@ -132,7 +139,7 @@ class BaseFeaturizer(ABC):
 
         X = np.array([seqs_to_feature[seq] for seq in original_seqs])
 
-        if self.flatten_features == True:
+        if self.flatten_features:
             X = X.reshape(len(X), -1)
 
         return X
