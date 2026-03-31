@@ -1,8 +1,15 @@
-from multievolve.splitters import *
-from multievolve.featurizers import *
-from multievolve.predictors import *
-from multievolve.proposers import *
-from multievolve.utils import *
+import os
+
+import pandas as pd
+
+from multievolve.splitters import MutLoadProteinSplitter
+from multievolve.predictors import Fcn, run_nn_model_experiments
+from multievolve.utils.benchmark_utils import (
+    receive_dataset_vars,
+    retrieve_wt_file,
+    preprocess_dataset,
+    select_feature,
+)
 
 # dataset directory
 main_dir = "../../data/benchmark/"

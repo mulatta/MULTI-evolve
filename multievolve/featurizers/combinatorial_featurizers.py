@@ -1,7 +1,29 @@
-from multievolve.featurizers.base_featurizers import *
-from multievolve.featurizers.esm_featurizers import *
-from multievolve.featurizers.msa_featurizers import *
-from multievolve.featurizers.zeroshot_featurizers import *
+import numpy as np
+
+from multievolve.featurizers.base_featurizers import (
+    OneHotFeaturizer,
+    GeorgievFeaturizer,
+    AAIdxFeaturizer,
+)
+from multievolve.featurizers.esm_featurizers import (
+    ESMLogitsFeaturizer,
+    ESM1vEmbedFeaturizer,
+    ESM2EmbedFeaturizer,
+    ESM2_15b_EmbedFeaturizer,
+)
+from multievolve.featurizers.msa_featurizers import (
+    MSAEmbedFeaturizer,
+    MSASequenceEmbedFeaturizer,
+    MSALogitsFeaturizer,
+)
+from multievolve.featurizers.zeroshot_featurizers import (
+    ZeroshotMSAFeaturizer,
+    ZeroshotESMFeaturizer,
+    ZeroshotProseFeaturizer,
+    ZeroshotCSCSFeaturizer,
+    ZeroshotCSCSGramFeaturizer,
+    ZeroshotCSCSSemFeaturizer,
+)
 
 from multievolve.featurizers.model_choices import FEATURIZE_CHOICES
 

@@ -107,7 +107,7 @@ def run_nn_model_experiments(
                         )
 
                         # Train and evaluate model
-                        stat = instance.run_model()
+                        instance.run_model()
 
                 if search_method == "grid" or search_method == "test":
                     wandb.agent(sweep_id, train_function)
@@ -264,7 +264,7 @@ class BaseNN(nn.Module):
                     wandb.log({"Train Loss": train_loss, "Val Loss": val_loss})
 
                 # Check for early stopping
-                if self.early_stopping_check(val_loss, epoch) == True:
+                if self.early_stopping_check(val_loss, epoch):
                     break
                 else:
                     continue
@@ -274,7 +274,7 @@ class BaseNN(nn.Module):
                 self.save_model(model, model_path=None)
 
         # Test model
-        if eval == True:
+        if eval:
             return self.evaluate(model)
         else:
             return None

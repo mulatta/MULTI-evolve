@@ -97,7 +97,7 @@ def main():
 
     # Create designer instance
     try:
-        designer = MultiAssemblyDesigner(
+        MultiAssemblyDesigner(
             df,
             args.wt_fasta,
             args.overhang,

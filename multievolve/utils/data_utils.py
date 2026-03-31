@@ -71,13 +71,13 @@ def mutation_format_check(mutation):
     Returns:
     - str: Format of the mutation ('Mutation String', 'Mutation List', or 'Full Sequence').
     """
-    if type(mutation) == str:
+    if isinstance(mutation, str):
         if re.search(r"[a-zA-Z]\d+[a-zA-Z]", mutation) or mutation == "WT":
             return "Mutation String"
         else:
             return "Full Sequence"
 
-    if type(mutation) == list or type(mutation) == tuple:
+    if isinstance(mutation, (list, tuple)):
         assert re.search(r"[a-zA-Z]\d+[a-zA-Z]", mutation[0]), (
             f"{mutation[0]} is not a true mutation"
         )

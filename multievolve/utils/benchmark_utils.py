@@ -5,10 +5,19 @@ import json
 import hashlib
 import re
 
-from multievolve.splitters import *
-from multievolve.featurizers import *
-from multievolve.predictors import *
-from multievolve.proposers import *
+import os
+
+from multievolve.featurizers import (
+    ESM2_15b_EmbedFeaturizer,
+    ESM2EmbedFeaturizer,
+    OneHotFeaturizer,
+    GeorgievFeaturizer,
+    AAIdxFeaturizer,
+    OnehotAndESM2_15bEmbedFeaturizer,
+    AnkhBaseFeaturizer,
+    AnkhLargeFeaturizer,
+    ProtT5_XL_U50_EmbedFeaturizer,
+)
 
 
 class TrainingCache:
@@ -183,7 +192,7 @@ def preprocess_dataset(dataset_fname, data_dir, stringency="singles"):
     # options for stringency: 'singles', 'singles_or_doubles', 'singles_positions'
 
     # check for existing processed datasets
-    processed_datasets_dir = os.path.join(data_dir, "processed")
+    os.path.join(data_dir, "processed")
     processed_datasets_all_dir = os.path.join(data_dir, "processed", "all")
     processed_datasets_stringency_dir = os.path.join(data_dir, "processed", stringency)
     processed_all_filename = os.path.join(
@@ -276,15 +285,15 @@ def preprocess_dataset(dataset_fname, data_dir, stringency="singles"):
 
     if stringency == "singles":
         working_df_head_valid = working_df_head[
-            working_df_head["singles_exist"] == True
+            working_df_head["singles_exist"]
         ].sort_values(by="num_mutations", ascending=False)
     elif stringency == "singles_or_doubles":
         working_df_head_valid = working_df_head[
-            working_df_head["singles_or_doubles_exist"] == True
+            working_df_head["singles_or_doubles_exist"]
         ].sort_values(by="num_mutations", ascending=False)
     elif stringency == "singles_positions":
         working_df_head_valid = working_df_head[
-            working_df_head["singles_positions_exist"] == True
+            working_df_head["singles_positions_exist"]
         ].sort_values(by="num_mutations", ascending=False)
     else:
         raise ValueError(

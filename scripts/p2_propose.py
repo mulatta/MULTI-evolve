@@ -26,10 +26,12 @@ import matplotlib
 
 matplotlib.use("Agg")
 
-from multievolve.splitters import *
-from multievolve.featurizers import *
-from multievolve.predictors import *
-from multievolve.proposers import *
+import os
+
+from multievolve.splitters import KFoldProteinSplitter
+from multievolve.featurizers import OneHotFeaturizer
+from multievolve.predictors import Fcn
+from multievolve.proposers import CombinatorialProposer
 
 
 def parse_args():

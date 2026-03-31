@@ -14,10 +14,10 @@ from Bio import SeqIO
 from pathlib import Path
 import subprocess
 
-from multievolve.splitters import *
-from multievolve.featurizers import *
-from multievolve.predictors import *
-from multievolve.proposers import *
+from multievolve.splitters import *  # noqa: F403
+from multievolve.featurizers import *  # noqa: F403
+from multievolve.predictors import *  # noqa: F403
+from multievolve.proposers import *  # noqa: F403
 
 
 def setup_page():
@@ -147,14 +147,14 @@ def validate_files(
         if wt_files_aa:
             for wt_file_aa in wt_files_aa:
                 fasta_path = save_uploaded_file(wt_file_aa, protein_dir)
-                wt_seq_aa = str(SeqIO.read(fasta_path, "fasta").seq.upper())
+                str(SeqIO.read(fasta_path, "fasta").seq.upper())
         elif wt_file_aa:
             fasta_path = save_uploaded_file(wt_file_aa, protein_dir)
-            wt_seq_aa = str(SeqIO.read(fasta_path, "fasta").seq.upper())
+            str(SeqIO.read(fasta_path, "fasta").seq.upper())
 
         if wt_file_dna:
             fasta_path = save_uploaded_file(wt_file_dna, protein_dir)
-            wt_seq_dna = str(SeqIO.read(fasta_path, "fasta").seq.upper())
+            str(SeqIO.read(fasta_path, "fasta").seq.upper())
 
         # Validate and save dataset CSV
         if dataset_file:

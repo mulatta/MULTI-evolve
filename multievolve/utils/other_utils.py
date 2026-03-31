@@ -288,13 +288,13 @@ def mutational_pool_to_dict(mutational_pool, increase_wt=False):
 
     for key in mutations_dict:
         mut = mutations_dict[key][0]
-        wt, pos, mt = mut[0], mut[1:-1], mut[-1]
+        wt, pos, _mt = mut[0], mut[1:-1], mut[-1]
         wt_value = wt + pos + wt
 
         if wt_value not in mutations_dict[key]:
             mutations_dict[key].append(wt_value)
 
-        if increase_wt == True:
+        if increase_wt:
             total_mutants = len(mutations_dict[key]) - 2
             for i in range(total_mutants):
                 mutations_dict[key].append(wt_value)
@@ -314,7 +314,6 @@ def wt_only_mutational_pool_to_dict(mutational_pool, wt_seq):
     - dict: Dictionary with positions as keys and lists of wild-type mutations as values.
     """
     wt_mutations_dict = {}
-    pos = []
 
     for mutation in mutational_pool:
         number = int(re.search(r"\d+", mutation).group())

@@ -23,10 +23,9 @@ import matplotlib
 
 matplotlib.use("Agg")
 
-from multievolve.splitters import *
-from multievolve.featurizers import *
-from multievolve.predictors import *
-from multievolve.proposers import *
+from multievolve.splitters import KFoldProteinSplitter
+from multievolve.featurizers import OneHotFeaturizer
+from multievolve.predictors import Fcn, run_nn_model_experiments
 
 
 def parse_args():

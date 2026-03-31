@@ -139,7 +139,7 @@ class BaseFeaturizer(ABC):
 
         X = np.array([seqs_to_feature[seq] for seq in original_seqs])
 
-        if self.flatten_features == True:
+        if self.flatten_features:
             X = X.reshape(len(X), -1)
 
         return X

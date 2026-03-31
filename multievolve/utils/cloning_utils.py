@@ -494,7 +494,7 @@ class MultiAssemblyDesigner:
                                 return items
 
                         df[column] = df[column].apply(convert_to_list)
-            except:
+            except Exception:
                 # If conversion fails, keep the column as is
                 continue
 

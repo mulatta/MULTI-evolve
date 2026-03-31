@@ -228,7 +228,7 @@ def zero_shot_esm_if_dms(
     )
 
     prev_output_tokens = tokens[:, :-1].to(device)
-    target = tokens[:, 1:]
+    tokens[:, 1:]
     logits, _ = model.forward(coords, padding_mask, confidence, prev_output_tokens)
 
     # Average model scores and find scores for the mutations-of-interest.
@@ -471,7 +471,7 @@ def zero_shot_esm_if(
     )
 
     prev_output_tokens = tokens[:, :-1].to(device)
-    target = tokens[:, 1:]
+    tokens[:, 1:]
     logits, _ = model.forward(coords, padding_mask, confidence, prev_output_tokens)
 
     # Average model scores and find scores for the mutations-of-interest.

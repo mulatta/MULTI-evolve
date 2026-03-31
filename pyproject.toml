@@ -46,6 +46,12 @@ torch-scatter = { index = "pyg-cu124" }
 torch-sparse = { index = "pyg-cu124" }
 torch-spline-conv = { index = "pyg-cu124" }
 
+[tool.ruff.lint.per-file-ignores]
+# Notebooks use star imports for interactive convenience
+"notebooks/**" = ["F403", "F405"]
+# app.py imports multievolve namespace for potential future use
+"app.py" = ["F403", "F405"]
+
 [build-system]
 requires = ["setuptools>=64.0"]
 build-backend = "setuptools.build_meta"

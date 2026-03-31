@@ -10,13 +10,13 @@ import shutil
 
 import os
 
-root_folder = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-
 from multievolve.utils.other_utils import aa_dict_3to1
 from multievolve.utils.data_utils import (
     find_mutation_positions_multithreaded,
     MutationFormat,
 )
+
+root_folder = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
 class BaseSplitter(ABC):
@@ -185,7 +185,7 @@ class ProteinSplitter(BaseSplitter):
         )
 
         # Define base protein splitter path
-        if y_scaling == False:
+        if not y_scaling:
             self.y_scaling = "y_unscaled"
         else:
             self.y_scaling = "y_scaled"
@@ -250,7 +250,7 @@ class ProteinSplitter(BaseSplitter):
             )
             self.data["mut_load"] = self.data["mut_positions"].apply(lambda x: len(x))
 
-            if y_scaling == True:
+            if y_scaling:
                 scaler = MinMaxScaler()
                 scaled_data = scaler.fit_transform(
                     np.array(self.data[1]).reshape(-1, 1)
@@ -315,7 +315,7 @@ class ProteinSplitter(BaseSplitter):
         # 0 for train, 1 for test, 2 for val
 
         if self.val_split is not None:
-            if self.kfold_splits == True:
+            if self.kfold_splits:
                 pass
             else:
                 # Separate train set into train and val sets
@@ -415,7 +415,7 @@ class ProteinSplitter(BaseSplitter):
             fold_sizes[i] += 1
 
         # Assign fold labels
-        groups = np.zeros(len(self.data), dtype=int)
+        np.zeros(len(self.data), dtype=int)
         current_idx = 0
         for fold_idx, fold_size in enumerate(fold_sizes):
             for i in range(current_idx, current_idx + fold_size):
