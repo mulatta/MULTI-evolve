@@ -2,9 +2,7 @@ import copy
 import os
 from joblib import Parallel, delayed
 import random
-from typing import List, Tuple
 
-from Bio import SeqIO
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,8 +11,17 @@ import seaborn as sns
 from itertools import combinations, product
 
 from multievolve.predictors import BaseRegressor, GPRegressor
-from multievolve.utils.data_utils import MutationFormat, MutationListFormats, levenshtein_distance_matrix
-from multievolve.utils.other_utils import deep_mutational_scan, wt_only_mutational_pool_to_dict, mutational_pool_to_dict, mut_pool_searcher
+from multievolve.utils.data_utils import (
+    MutationFormat,
+    MutationListFormats,
+    levenshtein_distance_matrix,
+)
+from multievolve.utils.other_utils import (
+    deep_mutational_scan,
+    wt_only_mutational_pool_to_dict,
+    mutational_pool_to_dict,
+    mut_pool_searcher,
+)
 
 # Definitions:
 # Mutant = single substitution, deletion, or insertion
@@ -45,7 +52,7 @@ class BaseProposer:
         trust_radius=None,
         num_seeds=None,
         mutation_pool=None,
-        experiment_name="base_proposer_run"
+        experiment_name="base_proposer_run",
     ):
         """
         Initialize the BaseProposer.
@@ -98,8 +105,10 @@ class BaseProposer:
         if self.proposals is None:
             raise ValueError("No proposals have been made.")
         else:
-            dir_path = os.path.join(self.models[0].file_attrs["dataset_dir"], "proposers/results/")
-            
+            dir_path = os.path.join(
+                self.models[0].file_attrs["dataset_dir"], "proposers/results/"
+            )
+
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
             self.proposals.to_csv(
@@ -116,10 +125,20 @@ class BaseProposer:
         Returns:
             pd.DataFrame: DataFrame containing mutations, full sequences, and mutation strings.
         """
-        proposals = pd.DataFrame({'Mutations': muts})
-        proposals["Full_Sequence"] = proposals.apply(lambda row: MutationFormat(row['Mutations'], self.start_seq).to_full_sequence(), axis=1)
-        proposals['Mut_string'] = proposals.apply(lambda row: MutationFormat(row['Full_Sequence'], self.start_seq).to_mutation_string(), axis=1)
-        
+        proposals = pd.DataFrame({"Mutations": muts})
+        proposals["Full_Sequence"] = proposals.apply(
+            lambda row: MutationFormat(
+                row["Mutations"], self.start_seq
+            ).to_full_sequence(),
+            axis=1,
+        )
+        proposals["Mut_string"] = proposals.apply(
+            lambda row: MutationFormat(
+                row["Full_Sequence"], self.start_seq
+            ).to_mutation_string(),
+            axis=1,
+        )
+
         return proposals
 
     def propose(self) -> pd.DataFrame:
@@ -151,11 +170,14 @@ class BaseProposer:
 
         for model in tqdm(self.models):
             print(f"Evaluating proposals with model: {model.file_attrs['model_name']}")
-            self.proposals[model.file_attrs['model_name']] = model.predict(self.proposals["Full_Sequence"])
-        
-        # Calculate average across all models
-        self.proposals['average'] = self.proposals.iloc[:,-len(self.models):].mean(axis=1)
+            self.proposals[model.file_attrs["model_name"]] = model.predict(
+                self.proposals["Full_Sequence"]
+            )
 
+        # Calculate average across all models
+        self.proposals["average"] = self.proposals.iloc[:, -len(self.models) :].mean(
+            axis=1
+        )
 
     def get_variables(self) -> dict:
         """
@@ -207,7 +229,7 @@ class AlanineScanningProposer(BaseProposer):
         """
         muts = []
         for i, wt in enumerate(self.start_seq):
-            muts.append(f"{wt}{i+1}A")
+            muts.append(f"{wt}{i + 1}A")
 
         self.proposals = self.proposal_list_to_dataframe(muts)
 
@@ -276,7 +298,7 @@ class RandomMutagenesisProposer(BaseProposer):
         proposals (pd.DataFrame): DataFrame to store proposed mutations.
 
     Example Usage:
-    
+
         # Initialize proposer with sequence and parameters
         # Ignore: experiment_name
         proposer = RandomMutagenesisProposer(
@@ -367,11 +389,14 @@ class CombinatorialProposer(BaseProposer):
         def generate_permutations(mutations, num_positions):
             positions = list(mutations.keys())
             all_combinations_ls = []
-            
+
             # Get all combinations of the given number of positions
             for combo in combinations(positions, num_positions):
                 # Generate all permutations for the selected combination of positions
-                perms_ls = [permutation for permutation in product(*(mutations[pos] for pos in combo))]
+                perms_ls = [
+                    permutation
+                    for permutation in product(*(mutations[pos] for pos in combo))
+                ]
                 all_combinations_ls.extend(perms_ls)
 
             return all_combinations_ls
@@ -382,12 +407,12 @@ class CombinatorialProposer(BaseProposer):
         # Iterate over the list and populate the dictionary
         for mutation in self.mutation_pool:
             # Extract the position and mutation from the string
-            position = int(''.join(filter(str.isdigit, mutation)))
-            
+            position = int("".join(filter(str.isdigit, mutation)))
+
             # If the position is not in the dictionary, add it with an empty list
             if position not in mutations_dict:
                 mutations_dict[position] = []
-            
+
             # Append the mutation to the list at the current position
             mutations_dict[position].append(mutation)
 
@@ -399,10 +424,14 @@ class CombinatorialProposer(BaseProposer):
         else:
             # Randomly sample num_seeds combinations for each size from 2 up to trust_radius
             for r in range(2, self.trust_radius + 1):
-                muts.extend(random.sample(generate_permutations(mutations_dict, r), self.num_seeds))
+                muts.extend(
+                    random.sample(
+                        generate_permutations(mutations_dict, r), self.num_seeds
+                    )
+                )
 
         self.proposals = self.proposal_list_to_dataframe(muts)
-        self.proposals['num_muts'] = [len(mut) for mut in muts]
+        self.proposals["num_muts"] = [len(mut) for mut in muts]
 
         if output_df:
             return self.proposals
@@ -528,7 +557,6 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
         use_cache=True,
         n_jobs=1,
         verbose=1,
-
     ):
         """
         Initialize the SimulatedAnnealingProposer.
@@ -581,16 +609,18 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
 
         # Double check to make sure mutations are within the min + max range
         mutation_pool = self.mutation_pool
-       
+
         filtered_mutation_pool = []
         for mut in mutation_pool:
             idx = int(mut[1:-1]) - 1
             if min_mut_pos <= idx <= max_mut_pos:
                 filtered_mutation_pool.append(mut)
-        self.mutation_pool = filtered_mutation_pool # mutations should be 1-indexed
+        self.mutation_pool = filtered_mutation_pool  # mutations should be 1-indexed
 
         # Create dictionaries from the mutational pool
-        self.wt_mutational_pool_dict = wt_only_mutational_pool_to_dict(self.mutation_pool, self.start_seq)
+        self.wt_mutational_pool_dict = wt_only_mutational_pool_to_dict(
+            self.mutation_pool, self.start_seq
+        )
         self.mutational_pool_dict = mutational_pool_to_dict(self.mutation_pool)
 
     def save_proposals(self):
@@ -598,11 +628,17 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
         if self.proposals is None:
             raise ValueError("No proposals have been made.")
         else:
-            dir_path = os.path.join(self.models[0].file_attrs["dataset_dir"], "proposers/results/")
+            dir_path = os.path.join(
+                self.models[0].file_attrs["dataset_dir"], "proposers/results/"
+            )
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
             self.proposals.to_csv(
-                os.path.join(dir_path, f"{self.trust_radius}-{self.trajectories}-{self.n_iter}-{self.T_max}-{self.decay_rate}-{self.k}-{self.experiment_name}-proposals.csv"), index=False
+                os.path.join(
+                    dir_path,
+                    f"{self.trust_radius}-{self.trajectories}-{self.n_iter}-{self.T_max}-{self.decay_rate}-{self.k}-{self.experiment_name}-proposals.csv",
+                ),
+                index=False,
             )
 
     def graph_annealing_history(self, seeds_to_plot=30):
@@ -612,32 +648,48 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
         Args:
             seeds_to_plot (int): Number of seeds to include in the fitness plot.
         """
-        fig, axs = plt.subplots(4, 1, figsize=(10, 20))  # Create a figure and a 4x1 grid of subplots
+        fig, axs = plt.subplots(
+            4, 1, figsize=(10, 20)
+        )  # Create a figure and a 4x1 grid of subplots
 
         # Plot histories
         metrics = [
-            (self.acceptance_rate_history, 'Acceptance Rate'),
-            (self.best_fitness_values, 'Best Fitness'),
-            (self.avg_fitness_values, 'Average Fitness')
+            (self.acceptance_rate_history, "Acceptance Rate"),
+            (self.best_fitness_values, "Best Fitness"),
+            (self.avg_fitness_values, "Average Fitness"),
         ]
         for i, (data, title) in enumerate(metrics):
             axs[i].plot(data)
-            axs[i].set(title=f'{title} History', xlabel='Iteration', ylabel=title)
+            axs[i].set(title=f"{title} History", xlabel="Iteration", ylabel=title)
 
         # Plot fitness scores by seed
         sns.set_theme(style="darkgrid")
-        for seed in self.proposals['Seed'].unique()[:seeds_to_plot]:
-            subset = self.proposals[self.proposals['Seed'] == seed]
-            axs[3].plot(subset['Iteration'], subset['Fitness'], label=f'Seed {seed}', marker='o')
-        axs[3].set(xlabel='Iteration', ylabel='Fitness', title='Fitness Scores by Seed Over Time')
+        for seed in self.proposals["Seed"].unique()[:seeds_to_plot]:
+            subset = self.proposals[self.proposals["Seed"] == seed]
+            axs[3].plot(
+                subset["Iteration"], subset["Fitness"], label=f"Seed {seed}", marker="o"
+            )
+        axs[3].set(
+            xlabel="Iteration",
+            ylabel="Fitness",
+            title="Fitness Scores by Seed Over Time",
+        )
 
         plt.tight_layout()  # Adjust layout to not overlap
-        
-        dir_path = os.path.join(self.models[0].file_attrs["dataset_dir"], "proposers/graphs/")
+
+        dir_path = os.path.join(
+            self.models[0].file_attrs["dataset_dir"], "proposers/graphs/"
+        )
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-        
-        plt.savefig(os.path.join(dir_path, f"{self.trust_radius}-{self.trajectories}-{self.n_iter}-{self.T_max}-{self.decay_rate}-{self.k}-{self.experiment_name}-graphs.jpg"), dpi=600)
+
+        plt.savefig(
+            os.path.join(
+                dir_path,
+                f"{self.trust_radius}-{self.trajectories}-{self.n_iter}-{self.T_max}-{self.decay_rate}-{self.k}-{self.experiment_name}-graphs.jpg",
+            ),
+            dpi=600,
+        )
 
     def __acceptance_prob(self, f_proposal, f_current, i):
         """
@@ -681,28 +733,38 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
             if len(seq_mut_positions) - n_edits < 0:
                 n_edits = len(seq_mut_positions)
             # randomly determine how many of the total edits will be to revert to wildtype
-            n_edits_wt = random.choice(range(0, n_edits+1))
-            random_wt_mutations = random.sample(mut_pool_searcher(seq_mut_positions, self.wt_mutational_pool_dict), n_edits_wt)
+            n_edits_wt = random.choice(range(0, n_edits + 1))
+            random_wt_mutations = random.sample(
+                mut_pool_searcher(seq_mut_positions, self.wt_mutational_pool_dict),
+                n_edits_wt,
+            )
             if n_edits - n_edits_wt > 0:
-                random_pos_mutations = random.sample(mut_pool_searcher(seq_mut_positions, self.mutational_pool_dict), n_edits - n_edits_wt)
+                random_pos_mutations = random.sample(
+                    mut_pool_searcher(seq_mut_positions, self.mutational_pool_dict),
+                    n_edits - n_edits_wt,
+                )
             # combine the two lists
             random_mutations = random_wt_mutations + random_pos_mutations
 
         lseq = list(seq)
         pos_ls = seq_mut_positions.copy()
 
-        for mut in random_mutations: 
-            idx = int(mut[1:-1]) - 1 # adjust for 1-index based residue positioning
+        for mut in random_mutations:
+            idx = int(mut[1:-1]) - 1  # adjust for 1-index based residue positioning
             lseq[idx] = mut[-1]
             # Remove mutation from position list if mutating back to wildtype
             if mut[-1] == self.start_seq_ls[idx]:
-                if (idx+1) in pos_ls:
-                    pos_ls.remove(idx+1) # account for 1-index based residue positioning
+                if (idx + 1) in pos_ls:
+                    pos_ls.remove(
+                        idx + 1
+                    )  # account for 1-index based residue positioning
             else:
-                if (idx+1) not in pos_ls:
-                    pos_ls.append(idx+1) # account for 1-index based residue positioning
+                if (idx + 1) not in pos_ls:
+                    pos_ls.append(
+                        idx + 1
+                    )  # account for 1-index based residue positioning
 
-        mutated_seq = ''.join(lseq)
+        mutated_seq = "".join(lseq)
 
         return mutated_seq, pos_ls
 
@@ -722,14 +784,13 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
 
         # Enforce trust radius part 1 (by limiting the mutational pool to sample from)
         nmut = np.array([len(pos_ls) for pos_ls in seqs_mut_positions])
-        mut_mask = nmut >= self.trust_radius # if number of mutations is greater than or equal to maximum allowed, then edit walk direction
+        mut_mask = (
+            nmut >= self.trust_radius
+        )  # if number of mutations is greater than or equal to maximum allowed, then edit walk direction
 
         results = Parallel(n_jobs=self.n_jobs)(
             delayed(self.__make_n_mutations)(
-                seq,
-                n_edits[i],
-                seqs_mut_positions[i],
-                backward=mut_mask[i]
+                seq, n_edits[i], seqs_mut_positions[i], backward=mut_mask[i]
             )
             for i, seq in enumerate(seqs)
         )
@@ -737,7 +798,7 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
         mseqs, mpositions = zip(*results)
 
         return mseqs, mpositions
-    
+
     def __get_fitness_fn(self, seqs, seqs_mut_positions):
         """
         Calculate fitness for the given sequences.
@@ -756,14 +817,16 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
             uncertainties = self.guiding_model.uncertainties_
         else:
             uncertainties = np.zeros(y_pred.shape)
-    
+
         # Enforce trust radius part 3
         nmut = np.array([len(pos_ls) for pos_ls in seqs_mut_positions])
-        mut_mask = nmut > self.trust_radius # if number of mutations is greater than maximum allowed, then prevent accepting the change
+        mut_mask = (
+            nmut > self.trust_radius
+        )  # if number of mutations is greater than maximum allowed, then prevent accepting the change
         y_pred[mut_mask] = -np.inf
 
         return y_pred, uncertainties, y_pred_original
-    
+
     def save_best_proposals(self, num_vars_per_mut_dist=6, min_mut_distance=2):
         """
         Save the best proposals, filtered by mutation distance.
@@ -775,31 +838,40 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
         if self.proposals is None:
             raise ValueError("No proposals have been made.")
         else:
-            dir_path = os.path.join(self.models[0].file_attrs["dataset_dir"], "proposers/designs/")
+            dir_path = os.path.join(
+                self.models[0].file_attrs["dataset_dir"], "proposers/designs/"
+            )
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
-            
-            df_dedup = self.proposals.drop_duplicates('Full_Sequence').copy()
-            df_dedup.sort_values(by='Fitness',ascending=False, inplace=True)
-            sequences = df_dedup['Full_Sequence'].tolist()
 
-            num_mutations_seed = list(levenshtein_distance_matrix([self.start_seq], sequences).reshape(-1).astype(int))
-            df_dedup['dist_from_start_seq'] = num_mutations_seed
+            df_dedup = self.proposals.drop_duplicates("Full_Sequence").copy()
+            df_dedup.sort_values(by="Fitness", ascending=False, inplace=True)
+            sequences = df_dedup["Full_Sequence"].tolist()
+
+            num_mutations_seed = list(
+                levenshtein_distance_matrix([self.start_seq], sequences)
+                .reshape(-1)
+                .astype(int)
+            )
+            df_dedup["dist_from_start_seq"] = num_mutations_seed
 
             df_ls = []
             for num in list(set(num_mutations_seed)):
                 if num >= min_mut_distance:
-                    df_current = df_dedup[df_dedup['dist_from_start_seq'] == num].copy()
-                    df_current.sort_values(by='Fitness',ascending=False, inplace=True)
+                    df_current = df_dedup[df_dedup["dist_from_start_seq"] == num].copy()
+                    df_current.sort_values(by="Fitness", ascending=False, inplace=True)
                     df_current = df_current[:num_vars_per_mut_dist]
                     df_ls.append(df_current)
 
             df_top = pd.concat(df_ls)
 
             df_top.to_csv(
-                os.path.join(dir_path, f"{self.trust_radius}-{self.trajectories}-{self.n_iter}-{self.T_max}-{self.decay_rate}-{self.k}-{self.experiment_name}-top_proposals.csv"), index=False
+                os.path.join(
+                    dir_path,
+                    f"{self.trust_radius}-{self.trajectories}-{self.n_iter}-{self.T_max}-{self.decay_rate}-{self.k}-{self.experiment_name}-top_proposals.csv",
+                ),
+                index=False,
             )
-
 
     def propose(self) -> pd.DataFrame:
         # [TODO] implement maximum mutation distance from WT
@@ -836,7 +908,9 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
         # 1b. Evaluate fitness of seeds
         state_seqs = copy.deepcopy(self.variant_seeds)
         state_seqs_mut_positions = [[] for _ in range(len(self.variant_seeds))]
-        state_fitness, state_fitness_std, __ = self.__get_fitness_fn(self.variant_seeds, state_seqs_mut_positions)
+        state_fitness, state_fitness_std, __ = self.__get_fitness_fn(
+            self.variant_seeds, state_seqs_mut_positions
+        )
         seq_history = [copy.deepcopy(state_seqs)]
         fitness_history = [copy.deepcopy(state_fitness)]
         fitness_std_history = [copy.deepcopy(state_fitness_std)]
@@ -855,12 +929,14 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
 
             if self.verbose:
                 print("\tProposing sequences.")
-            proposal_seqs, proposal_seqs_mut_pos = self.__propose_seqs(state_seqs, state_seqs_mut_positions)
+            proposal_seqs, proposal_seqs_mut_pos = self.__propose_seqs(
+                state_seqs, state_seqs_mut_positions
+            )
 
             if self.verbose:
                 print("\tCalculating predicted fitness.")
-            proposal_fitness, proposal_fitness_std, proposal_fitness_original = self.__get_fitness_fn(
-                proposal_seqs, proposal_seqs_mut_pos
+            proposal_fitness, proposal_fitness_std, proposal_fitness_original = (
+                self.__get_fitness_fn(proposal_seqs, proposal_seqs_mut_pos)
             )
 
             if self.verbose:
@@ -875,13 +951,15 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
             for j, ap in enumerate(aprob):
                 if np.random.rand() < ap:
                     state_seqs[j] = copy.deepcopy(proposal_seqs[j])
-                    state_seqs_mut_positions[j] = copy.deepcopy(proposal_seqs_mut_pos[j])
+                    state_seqs_mut_positions[j] = copy.deepcopy(
+                        proposal_seqs_mut_pos[j]
+                    )
                     state_fitness[j] = copy.deepcopy(proposal_fitness[j])
                     state_fitness_std[j] = copy.deepcopy(proposal_fitness_std[j])
                     self.accepted_proposals += 1
-            
+
             # Update monitoring variables
-            acceptance_rate = round(self.accepted_proposals/len(state_seqs)*100, 2)
+            acceptance_rate = round(self.accepted_proposals / len(state_seqs) * 100, 2)
             self.acceptance_rate_history.append(acceptance_rate)
 
             self.best_fitness_values.append(proposal_fitness_original.max())
@@ -889,29 +967,31 @@ class SimulatedAnnealingProposer(ModelGuidedProposer):
             if i > 0:
                 best_fitness_array = np.array(self.best_fitness_values)
                 avg_fitness_array = np.array(self.avg_fitness_values)
-                serial_correlation_best = np.corrcoef(best_fitness_array[:-1], best_fitness_array[1:])[0, 1]
-                serial_correlation_avg = np.corrcoef(avg_fitness_array[:-1], avg_fitness_array[1:])[0, 1]
+                serial_correlation_best = np.corrcoef(
+                    best_fitness_array[:-1], best_fitness_array[1:]
+                )[0, 1]
+                serial_correlation_avg = np.corrcoef(
+                    avg_fitness_array[:-1], avg_fitness_array[1:]
+                )[0, 1]
                 self.serial_corr_best.append(serial_correlation_best)
                 self.serial_corr_avg.append(serial_correlation_avg)
-
 
             seq_history.append(copy.deepcopy(state_seqs))
             fitness_history.append(copy.deepcopy(state_fitness))
             fitness_std_history.append(copy.deepcopy(state_fitness_std))
 
             if self.verbose:
-                print(f'\tCurrent best fitness: {state_fitness.max()}')
-                print(f"Acceptance Rate: {acceptance_rate}")            
-                
+                print(f"\tCurrent best fitness: {state_fitness.max()}")
+                print(f"Acceptance Rate: {acceptance_rate}")
 
         # 3. Save results to pd.DataFrame and then csv
 
         # Label each row with the sequence, seed number, iteration number, fitness score, fitness std, mutation string, and number of mutations
         data = [
-                [seq, j, i, fitness_history[i][j][0], fitness_std_history[i][j][0]]
-                for i, seqs in enumerate(seq_history)
-                for j, seq in enumerate(seqs)
-                ]
+            [seq, j, i, fitness_history[i][j][0], fitness_std_history[i][j][0]]
+            for i, seqs in enumerate(seq_history)
+            for j, seq in enumerate(seqs)
+        ]
 
         df = pd.DataFrame(
             data,

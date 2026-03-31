@@ -1,4 +1,3 @@
-from Bio import SeqIO
 import numpy as np
 import torch
 
@@ -40,7 +39,7 @@ class MSABaseFeaturizer(BaseFeaturizer):
         msa_file=None,
         batch_size=968,
         model_type="msa",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -58,8 +57,6 @@ class MSABaseFeaturizer(BaseFeaturizer):
         self.msa_file = msa_file
         self.device = torch.device("cpu")  # MSAs might be too big for GPU
 
-        
-
     def featurize_msa(self, seqs, msa_file, output_type, **kwargs):
         """
         Featurizes sequences using MSA Transformer model.
@@ -74,7 +71,7 @@ class MSABaseFeaturizer(BaseFeaturizer):
             np.ndarray: Array of sequence features.
         """
         from esm import pretrained
-        
+
         torch.set_grad_enabled(False)
         # Check to see if there is an MSA file in **kwargs.
         if msa_file is None:
@@ -158,7 +155,7 @@ class MSABaseFeaturizer(BaseFeaturizer):
                     reps.append(logits)
 
         X = np.array(reps)
-    
+
         return X
 
 
@@ -195,7 +192,7 @@ class MSAEmbedFeaturizer(MSABaseFeaturizer):
         model_locations=FEATURE_MODELS["msa_embed"],
         batch_size=968,
         model_type="msa_embed",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -214,7 +211,7 @@ class MSAEmbedFeaturizer(MSABaseFeaturizer):
             msa_file,
             batch_size,
             model_type,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, msa_file=None, **kwargs):
@@ -268,7 +265,7 @@ class MSASequenceEmbedFeaturizer(MSABaseFeaturizer):
         model_locations=FEATURE_MODELS["msa_sequence_embed"],
         batch_size=968,
         model_type="msa_sequence_embed",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -287,7 +284,7 @@ class MSASequenceEmbedFeaturizer(MSABaseFeaturizer):
             msa_file,
             batch_size,
             model_type,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, msa_file=None, **kwargs):
@@ -341,7 +338,7 @@ class MSALogitsFeaturizer(MSABaseFeaturizer):
         model_locations=FEATURE_MODELS["msa_logits"],
         batch_size=968,
         model_type="msa_logits",
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -360,7 +357,7 @@ class MSALogitsFeaturizer(MSABaseFeaturizer):
             msa_file,
             batch_size,
             model_type,
-            **kwargs
+            **kwargs,
         )
 
     def custom_featurizer(self, seqs, msa_file=None, **kwargs):

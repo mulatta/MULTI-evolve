@@ -20,59 +20,54 @@ import wandb
 import argparse
 import sys
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 
 from multievolve.splitters import *
 from multievolve.featurizers import *
 from multievolve.predictors import *
 from multievolve.proposers import *
 
+
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Train multievolveneural network models')
+    parser = argparse.ArgumentParser(
+        description="Train multievolveneural network models"
+    )
 
     parser.add_argument(
-        '-e',
-        '--experiment-name',
-        required=True,
-        help='Name of the experiment'   
+        "-e", "--experiment-name", required=True, help="Name of the experiment"
     )
     parser.add_argument(
-        '-p',
-        '--protein-name',
-        required=True,
-        help='Name of the protein'
+        "-p", "--protein-name", required=True, help="Name of the protein"
     )
     parser.add_argument(
-        '-wt',
-        '--wt-files',
+        "-wt",
+        "--wt-files",
         required=True,
-        help='Comma separated list of paths to the wildtype FASTA files'
+        help="Comma separated list of paths to the wildtype FASTA files",
     )
     parser.add_argument(
-        '-t',
-        '--training-dataset-fname',
+        "-t",
+        "--training-dataset-fname",
         required=True,
-        help='Path to the training dataset CSV file'
+        help="Path to the training dataset CSV file",
     )
     parser.add_argument(
-        '-k',
-        '--wandb-key',
-        required=True,
-        help='WandB API key for authentication'
+        "-k", "--wandb-key", required=True, help="WandB API key for authentication"
     )
     parser.add_argument(
-        '-m',
-        '--mode',
+        "-m",
+        "--mode",
         required=True,
-        help='Training method of the experiment, options include: test or standard'
+        help="Training method of the experiment, options include: test or standard",
     )
     args = parser.parse_args()
-    args.wt_files = [f.strip() for f in args.wt_files.split(',')]
+    args.wt_files = [f.strip() for f in args.wt_files.split(",")]
     return args
 
+
 def main():
-    
     """Main function."""
 
     # Parse command line arguments
@@ -93,7 +88,15 @@ def main():
 
     try:
         # Define splits
-        fold_splitter = KFoldProteinSplitter(protein_name, training_dataset_fname, wt_files, csv_has_header=True, use_cache=True, y_scaling=True, val_split=0.15)
+        fold_splitter = KFoldProteinSplitter(
+            protein_name,
+            training_dataset_fname,
+            wt_files,
+            csv_has_header=True,
+            use_cache=True,
+            y_scaling=True,
+            val_split=0.15,
+        )
         splits = fold_splitter.generate_splits(n_splits=5)
     except Exception as e:
         print(f"Error generating splits: {e}")
@@ -101,7 +104,7 @@ def main():
 
     try:
         # Define features
-        onehot = OneHotFeaturizer(protein=protein_name, use_cache=True) 
+        onehot = OneHotFeaturizer(protein=protein_name, use_cache=True)
         features = [onehot]
     except Exception as e:
         print(f"Error generating features: {e}")
@@ -110,30 +113,32 @@ def main():
     # Define models
     models = [Fcn]
 
-    if args.mode == 'test':
+    if args.mode == "test":
         print("Running in test mode")
-        sweep_depth = 'test'
-        search_method = 'test'
-    elif args.mode == 'standard':
+        sweep_depth = "test"
+        search_method = "test"
+    elif args.mode == "standard":
         print("Running in standard mode")
-        sweep_depth = 'standard'
-        search_method = 'grid'
+        sweep_depth = "standard"
+        search_method = "grid"
 
     try:
         # Run experiments
-        print(f"Running experiments for {experiment_name} with {protein_name}...")        
-        run_nn_model_experiments(splits, 
-                                features, 
-                                models, 
-                                experiment_name=experiment_name,
-                                use_cache=False,
-                                sweep_depth=sweep_depth,
-                                search_method=search_method,
-                                show_plots=True, # prevents issue when running script in terminal
-                                )
+        print(f"Running experiments for {experiment_name} with {protein_name}...")
+        run_nn_model_experiments(
+            splits,
+            features,
+            models,
+            experiment_name=experiment_name,
+            use_cache=False,
+            sweep_depth=sweep_depth,
+            search_method=search_method,
+            show_plots=True,  # prevents issue when running script in terminal
+        )
     except Exception as e:
         print(f"Error running experiments: {e}")
         sys.exit(1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

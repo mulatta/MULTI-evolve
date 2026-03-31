@@ -5,14 +5,11 @@ from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
 from scipy.stats import iqr
-from sklearn.gaussian_process.kernels import (
-    ConstantKernel as C,
-    DotProduct as DP,
-    RBF
-)
+from sklearn.gaussian_process.kernels import ConstantKernel as C, DotProduct as DP, RBF
 
 from multievolve.predictors.base_regressors import BaseRegressor
 from multievolve.utils.other_utils import performance_report
+
 
 def parallel_predict(model, X, batch_num, n_batches, verbose):
     """
@@ -30,9 +27,9 @@ def parallel_predict(model, X, batch_num, n_batches, verbose):
     """
     mean, var = model.predict(X, return_std=True)
     if verbose:
-        print('Finished predicting batch number {}/{}'
-               .format(batch_num + 1, n_batches))
+        print("Finished predicting batch number {}/{}".format(batch_num + 1, n_batches))
     return mean, var
+
 
 class GPRegressor(BaseRegressor):
     """Base Gaussian Process regressor class.
@@ -49,19 +46,20 @@ class GPRegressor(BaseRegressor):
         uncertainties_ (array): Prediction uncertainties
     """
 
-    def __init__(self, 
-                data_splitter, 
-                featurizer,
-                model='GPR',
-                n_restarts=0,
-                kernel=None,
-                normalize_y=True,
-                backend='sklearn',
-                batch_size=1000,
-                n_jobs=1,
-                verbose=False,
-                **kwargs
-                ):
+    def __init__(
+        self,
+        data_splitter,
+        featurizer,
+        model="GPR",
+        n_restarts=0,
+        kernel=None,
+        normalize_y=True,
+        backend="sklearn",
+        batch_size=1000,
+        n_jobs=1,
+        verbose=False,
+        **kwargs,
+    ):
         """
         Args:
             data_splitter: Object to split data into train/test sets
@@ -84,7 +82,7 @@ class GPRegressor(BaseRegressor):
         self.n_jobs_ = n_jobs
         self.verbose_ = verbose
         super().__init__(data_splitter, featurizer, model, **kwargs)
-    
+
     def train(self, X, y):
         """
         Train the GP model.
@@ -99,12 +97,16 @@ class GPRegressor(BaseRegressor):
         n_samples, n_features = X.shape
 
         if self.verbose_:
-            print('Fitting GP model on {} data points with dimension {}...'
-                   .format(*X.shape))
+            print(
+                "Fitting GP model on {} data points with dimension {}...".format(
+                    *X.shape
+                )
+            )
 
         # scikit-learn backend.
-        if self.backend_ == 'sklearn':
+        if self.backend_ == "sklearn":
             from sklearn.gaussian_process import GaussianProcessRegressor
+
             self.model = GaussianProcessRegressor(
                 kernel=self.kernel_,
                 normalize_y=self.normalize_y_,
@@ -114,25 +116,27 @@ class GPRegressor(BaseRegressor):
             ).fit(X, y)
 
         # GPy backend.
-        elif self.backend_ == 'gpy':
+        elif self.backend_ == "gpy":
             import GPy
-            if self.kernel_ == 'rbf':
+
+            if self.kernel_ == "rbf":
                 kernel = GPy.kern.RBF(
-                    input_dim=n_features, variance=1., lengthscale=1.
+                    input_dim=n_features, variance=1.0, lengthscale=1.0
                 )
             else:
-                raise ValueError('Kernel value {} not supported'
-                                 .format(self.kernel_))
+                raise ValueError("Kernel value {} not supported".format(self.kernel_))
 
             self.model = GPy.models.SparseGPRegression(
-                X, y.reshape(-1, 1), kernel=kernel,
-                num_inducing=min(self.n_inducing_, n_samples)
+                X,
+                y.reshape(-1, 1),
+                kernel=kernel,
+                num_inducing=min(self.n_inducing_, n_samples),
             )
             self.model.Z.unconstrain()
             self.model.optimize(messages=self.verbose_)
 
         # GPyTorch with CUDA backend.
-        elif self.backend_ == 'gpytorch':
+        elif self.backend_ == "gpytorch":
             import gpytorch
             import torch
 
@@ -143,12 +147,12 @@ class GPRegressor(BaseRegressor):
                     self.covar_module = gpytorch.kernels.ScaleKernel(
                         gpytorch.kernels.RBFKernel()
                     )
-            
+
                 def forward(self, X):
                     mean_X = self.mean_module(X)
                     covar_X = self.covar_module(X)
                     return gpytorch.distributions.MultivariateNormal(mean_X, covar_X)
-            
+
             X = torch.Tensor(X).contiguous().cuda()
             y = torch.Tensor(y).contiguous().cuda()
 
@@ -159,10 +163,15 @@ class GPRegressor(BaseRegressor):
             likelihood.train()
 
             # Use the Adam optimizer.
-            #optimizer = torch.optim.LBFGS([ {'params': model.parameters()} ])
-            optimizer = torch.optim.Adam([
-                {'params': model.parameters()}, # Includes GaussianLikelihood parameters.
-            ], lr=1.)
+            # optimizer = torch.optim.LBFGS([ {'params': model.parameters()} ])
+            optimizer = torch.optim.Adam(
+                [
+                    {
+                        "params": model.parameters()
+                    },  # Includes GaussianLikelihood parameters.
+                ],
+                lr=1.0,
+            )
 
             # Loss for GPs is the marginal log likelihood.
             mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
@@ -174,15 +183,18 @@ class GPRegressor(BaseRegressor):
                 loss = -mll(output, y)
                 loss.backward()
                 if self.verbose_:
-                    print('Iter {}/{} - Loss: {:.3f}'
-                           .format(i + 1, training_iterations, loss.item()))
+                    print(
+                        "Iter {}/{} - Loss: {:.3f}".format(
+                            i + 1, training_iterations, loss.item()
+                        )
+                    )
                 optimizer.step()
 
             self.model = model
             self.likelihood_ = likelihood
 
         if self.verbose_:
-            print('Done fitting GP model.')
+            print("Done fitting GP model.")
 
         return self
 
@@ -193,7 +205,7 @@ class GPRegressor(BaseRegressor):
         Returns:
             tuple: (dict of evaluation metrics, matplotlib figure)
         """
-        
+
         # Reshape data and get correlation stats
         y_pred = self.predict(self.X_test)
         y, y_pred = np.array(self.y_test), np.array(y_pred)
@@ -204,39 +216,58 @@ class GPRegressor(BaseRegressor):
         fig, ax = plt.subplots(figsize=(8, 5))  # Adjust size as needed
 
         # Clip data points that have activity less than 0 or greater than 1.2x the max experimental y value
-        y_max = y.max()*1.1
+        y_max = y.max() * 1.1
         y_pred_adjusted = np.clip(y_pred, 0, y_max)
 
         # Scale uncertainties using IQR and color data points based on uncertainty
-        scaled_uncertainties = (self.uncertainties_ - np.percentile(self.uncertainties_, 25)) / iqr(self.uncertainties_)
+        scaled_uncertainties = (
+            self.uncertainties_ - np.percentile(self.uncertainties_, 25)
+        ) / iqr(self.uncertainties_)
         cmap = plt.cm.viridis
         colors = cmap(scaled_uncertainties)
-        colors[y_pred > y_max] = mcolors.to_rgba('crimson')
-        colors[y_pred < 0] = mcolors.to_rgba('crimson')
+        colors[y_pred > y_max] = mcolors.to_rgba("crimson")
+        colors[y_pred < 0] = mcolors.to_rgba("crimson")
 
         # Scatter plot for main graph
-        scatter = ax.scatter(y_pred_adjusted, y, c=colors, alpha = 0.4)
+        scatter = ax.scatter(y_pred_adjusted, y, c=colors, alpha=0.4)
 
         # Uncertainty colorbar
         cbar = plt.colorbar(scatter, ax=ax)
-        cbar.set_label('Uncertainty')
+        cbar.set_label("Uncertainty")
 
         # Draw x=y line
-        ax.plot([0, y_max], [0, y_max], 'k--', linewidth=2)
+        ax.plot([0, y_max], [0, y_max], "k--", linewidth=2)
 
         # Set labels and title for main graph
-        ax.text(0.9, 0.1, f'Pearson r={stats["Pearson r"]:.2f}', fontsize=12, ha='right', va='bottom', transform=ax.transAxes)
-        ax.set_xlabel('Predicted Score')
-        ax.set_ylabel('True Score')
-        ax.set_title(f'Model Performance')
+        ax.text(
+            0.9,
+            0.1,
+            f"Pearson r={stats['Pearson r']:.2f}",
+            fontsize=12,
+            ha="right",
+            va="bottom",
+            transform=ax.transAxes,
+        )
+        ax.set_xlabel("Predicted Score")
+        ax.set_ylabel("True Score")
+        ax.set_title("Model Performance")
         ax.set_xlim(0, y_max)
 
         # Display model parameters using legend
-        model_params = self.name.split('|')  # Assuming '|' separates different parameters
-        param_text = '\n'.join(model_params)
-        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-        ax.text(0.05, 0.95, param_text, transform=ax.transAxes, fontsize=9,
-                verticalalignment='top', bbox=props)
+        model_params = self.name.split(
+            "|"
+        )  # Assuming '|' separates different parameters
+        param_text = "\n".join(model_params)
+        props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
+        ax.text(
+            0.05,
+            0.95,
+            param_text,
+            transform=ax.transAxes,
+            fontsize=9,
+            verticalalignment="top",
+            bbox=props,
+        )
 
         # Return the figure and axes object
         return stats, fig
@@ -252,26 +283,34 @@ class GPRegressor(BaseRegressor):
             array: Mean predictions
         """
         if self.verbose_:
-            print('Finding GP model predictions on {} data points...'
-                   .format(X.shape[0]))
+            print(
+                "Finding GP model predictions on {} data points...".format(X.shape[0])
+            )
 
-        if self.backend_ == 'sklearn':
+        if self.backend_ == "sklearn":
             n_batches = int(ceil(float(X.shape[0]) / self.batch_size_))
-            results = Parallel(n_jobs=self.n_jobs_)(#, max_nbytes=None)(
+            results = Parallel(
+                n_jobs=self.n_jobs_
+            )(  # , max_nbytes=None)(
                 delayed(parallel_predict)(
                     self.model,
-                    X[batch_num*self.batch_size_:(batch_num+1)*self.batch_size_],
-                    batch_num, n_batches, self.verbose_
+                    X[
+                        batch_num * self.batch_size_ : (batch_num + 1)
+                        * self.batch_size_
+                    ],
+                    batch_num,
+                    n_batches,
+                    self.verbose_,
                 )
                 for batch_num in range(n_batches)
             )
-            mean = np.concatenate([ result[0] for result in results ])
-            var = np.concatenate([ result[1] for result in results ])
+            mean = np.concatenate([result[0] for result in results])
+            var = np.concatenate([result[1] for result in results])
 
-        elif self.backend_ == 'gpy':
+        elif self.backend_ == "gpy":
             mean, var = self.model.predict(X, full_cov=False)
 
-        elif self.backend_ == 'gpytorch':
+        elif self.backend_ == "gpytorch":
             import gpytorch
             import torch
 
@@ -281,19 +320,22 @@ class GPRegressor(BaseRegressor):
             self.model.eval()
             self.likelihood_.eval()
 
-            with torch.no_grad(), \
-                 gpytorch.settings.fast_pred_var(), \
-                 gpytorch.settings.max_root_decomposition_size(35):
+            with (
+                torch.no_grad(),
+                gpytorch.settings.fast_pred_var(),
+                gpytorch.settings.max_root_decomposition_size(35),
+            ):
                 preds = self.model(X)
 
             mean = preds.mean.detach().cpu().numpy()
             var = preds.variance.detach().cpu().numpy()
 
         if self.verbose_:
-            print('Done predicting with GP model.')
+            print("Done predicting with GP model.")
 
         self.uncertainties_ = var.flatten()
         return mean.flatten()
+
 
 class SparseGPRegressor(BaseRegressor):
     """Sparse Gaussian Process regressor using inducing points.
@@ -311,19 +353,19 @@ class SparseGPRegressor(BaseRegressor):
     """
 
     def __init__(
-            self, 
-            data_splitter, 
-            featurizer,
-            model='SparseGPRegressor', 
-            n_inducing=1000,
-            method='geoskech',
-            n_restarts=0,
-            kernel=None,
-            backend='sklearn',
-            batch_size=1000,
-            n_jobs=1,
-            verbose=False,
-            **kwargs
+        self,
+        data_splitter,
+        featurizer,
+        model="SparseGPRegressor",
+        n_inducing=1000,
+        method="geoskech",
+        n_restarts=0,
+        kernel=None,
+        backend="sklearn",
+        batch_size=1000,
+        n_jobs=1,
+        verbose=False,
+        **kwargs,
     ):
         """
         Args:
@@ -348,7 +390,7 @@ class SparseGPRegressor(BaseRegressor):
         self.batch_size_ = batch_size
         self.n_jobs_ = n_jobs
         self.verbose_ = verbose
-        super().__init__(data_splitter, featurizer,model, **kwargs)
+        super().__init__(data_splitter, featurizer, model, **kwargs)
 
     def train(self, X, y):
         """
@@ -360,13 +402,12 @@ class SparseGPRegressor(BaseRegressor):
         """
         X, y = self.X, self.y
         if X.shape[0] > self.n_inducing_:
-            if self.method_ == 'uniform':
-                uni_idx = np.random.choice(X.shape[0], self.n_inducing_,
-                                           replace=False)
+            if self.method_ == "uniform":
+                uni_idx = np.random.choice(X.shape[0], self.n_inducing_, replace=False)
                 X_sketch = X[uni_idx]
                 y_sketch = y[uni_idx]
 
-            elif self.method_ == 'geosketch':
+            elif self.method_ == "geosketch":
                 from fbpca import pca
                 from geosketch import gs
 
@@ -388,7 +429,6 @@ class SparseGPRegressor(BaseRegressor):
             verbose=self.verbose_,
         ).fit(X_sketch, y_sketch)
 
-
     def custom_predictor(self, X):
         """
         Makes predictions using the trained sparse GP model.
@@ -403,22 +443,24 @@ class SparseGPRegressor(BaseRegressor):
         self.uncertainties_ = self.gpr_.uncertainties_
         return y_pred
 
+
 class GPLinearRegressor(GPRegressor):
     """Gaussian Process regressor with linear kernel."""
 
-    def __init__(self, 
-                 data_splitter, 
-                 featurizer,
-                 model='GPLinearRegressor',
-                 n_restarts=0,
-                 kernel = C(1., 'fixed') * DP(1., 'fixed'),
-                 normalize_y=True,
-                 backend='sklearn',
-                 batch_size=1000,
-                 n_jobs=1,
-                 verbose=False,
-                 **kwargs
-                 ):
+    def __init__(
+        self,
+        data_splitter,
+        featurizer,
+        model="GPLinearRegressor",
+        n_restarts=0,
+        kernel=C(1.0, "fixed") * DP(1.0, "fixed"),
+        normalize_y=True,
+        backend="sklearn",
+        batch_size=1000,
+        n_jobs=1,
+        verbose=False,
+        **kwargs,
+    ):
         """
         Args:
             data_splitter: Object to split data into train/test sets
@@ -433,25 +475,39 @@ class GPLinearRegressor(GPRegressor):
             verbose (bool): Whether to print progress messages
             **kwargs: Additional keyword arguments
         """
-        
-        super().__init__(data_splitter, featurizer, model, n_restarts, kernel, normalize_y, backend, batch_size, n_jobs, verbose, **kwargs)
+
+        super().__init__(
+            data_splitter,
+            featurizer,
+            model,
+            n_restarts,
+            kernel,
+            normalize_y,
+            backend,
+            batch_size,
+            n_jobs,
+            verbose,
+            **kwargs,
+        )
+
 
 class GPQuadRegressor(GPRegressor):
     """Gaussian Process regressor with quadratic kernel."""
 
-    def __init__(self,
-                data_splitter, 
-                featurizer,
-                model='GPQuadRegressor',
-                n_restarts=0,
-                kernel = C(1., 'fixed') * (DP(1, 'fixed') ** 2),
-                normalize_y=True,
-                backend='sklearn',
-                batch_size=1000,
-                n_jobs=1,
-                verbose=False,
-                **kwargs
-                ):
+    def __init__(
+        self,
+        data_splitter,
+        featurizer,
+        model="GPQuadRegressor",
+        n_restarts=0,
+        kernel=C(1.0, "fixed") * (DP(1, "fixed") ** 2),
+        normalize_y=True,
+        backend="sklearn",
+        batch_size=1000,
+        n_jobs=1,
+        verbose=False,
+        **kwargs,
+    ):
         """
         Args:
             data_splitter: Object to split data into train/test sets
@@ -466,25 +522,39 @@ class GPQuadRegressor(GPRegressor):
             verbose (bool): Whether to print progress messages
             **kwargs: Additional keyword arguments
         """
-    
-        super().__init__(data_splitter, featurizer, model, n_restarts, kernel, normalize_y, backend, batch_size, n_jobs, verbose, **kwargs)
+
+        super().__init__(
+            data_splitter,
+            featurizer,
+            model,
+            n_restarts,
+            kernel,
+            normalize_y,
+            backend,
+            batch_size,
+            n_jobs,
+            verbose,
+            **kwargs,
+        )
+
 
 class GPRBFRegressor(GPRegressor):
     """Gaussian Process regressor with RBF kernel."""
 
-    def __init__(self, 
-                 data_splitter, 
-                 featurizer,
-                model='GPRBFRegressor',
-                n_restarts=0,
-                kernel = C(1., 'fixed') * RBF(1., 'fixed'),
-                normalize_y=True,
-                backend='sklearn',
-                batch_size=1000,
-                n_jobs=1,
-                verbose=False,
-                **kwargs
-                ):
+    def __init__(
+        self,
+        data_splitter,
+        featurizer,
+        model="GPRBFRegressor",
+        n_restarts=0,
+        kernel=C(1.0, "fixed") * RBF(1.0, "fixed"),
+        normalize_y=True,
+        backend="sklearn",
+        batch_size=1000,
+        n_jobs=1,
+        verbose=False,
+        **kwargs,
+    ):
         """
         Args:
             data_splitter: Object to split data into train/test sets
@@ -499,5 +569,17 @@ class GPRBFRegressor(GPRegressor):
             verbose (bool): Whether to print progress messages
             **kwargs: Additional keyword arguments
         """
-    
-        super().__init__(data_splitter, featurizer, model, n_restarts, kernel, normalize_y, backend, batch_size, n_jobs, verbose, **kwargs)
+
+        super().__init__(
+            data_splitter,
+            featurizer,
+            model,
+            n_restarts,
+            kernel,
+            normalize_y,
+            backend,
+            batch_size,
+            n_jobs,
+            verbose,
+            **kwargs,
+        )

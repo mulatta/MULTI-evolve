@@ -37,6 +37,7 @@ class UnirepBaseFeaturizer(BaseFeaturizer):
 
         return h_avg
 
+
 class EvotunedUnirepFeaturizer(UnirepBaseFeaturizer):
     def __init__(self, model_type="evotuned_unirep", **kwargs):
         super().__init__(model_type=model_type, **kwargs)

@@ -30,7 +30,7 @@ FEATURIZE_CLASSES = {
 }
 
 
-class CombinatorialFeaturizer():
+class CombinatorialFeaturizer:
     """Base class for combining multiple featurizers.
 
     Attributes:
@@ -38,7 +38,7 @@ class CombinatorialFeaturizer():
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = CombinatorialFeaturizer(
         featurize_methods=['onehot', 'georgiev'],  # List of featurizers to combine
         protein='protein1',                        # Name of protein for caching
@@ -54,9 +54,9 @@ class CombinatorialFeaturizer():
             **kwargs: Additional arguments passed to each featurizer.
         """
         for featurize_method in featurize_methods:
-            assert (
-                featurize_method in FEATURIZE_CHOICES
-            ), f"{featurize_method} not in {FEATURIZE_CHOICES}"
+            assert featurize_method in FEATURIZE_CHOICES, (
+                f"{featurize_method} not in {FEATURIZE_CHOICES}"
+            )
 
         model_type = "-".join(featurize_methods)
         self.name = str(model_type)
@@ -84,7 +84,8 @@ class CombinatorialFeaturizer():
         X = np.concatenate(X, axis=-1)
 
         return X
-    
+
+
 class ESMAugmentedFeaturizer(CombinatorialFeaturizer):
     """Class for combining ESM features with one-hot encoding.
 
@@ -93,7 +94,7 @@ class ESMAugmentedFeaturizer(CombinatorialFeaturizer):
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = ESMAugmentedFeaturizer(
         protein='protein1',       # Name of protein for caching
         use_cache=True           # Whether to cache results
@@ -108,7 +109,7 @@ class ESMAugmentedFeaturizer(CombinatorialFeaturizer):
             **kwargs: Additional arguments passed to each featurizer.
         """
         super().__init__(featurize_methods, **kwargs)
-    
+
     def featurize(self, seqs, **kwargs):
         """
         Featurizes sequences using ESM and one-hot encoding.
@@ -121,17 +122,18 @@ class ESMAugmentedFeaturizer(CombinatorialFeaturizer):
             np.ndarray: Combined ESM and one-hot features.
         """
         X = []
-        
+
         featurizer_0 = list(self.featurizers.values())[0]
         X.append(featurizer_0.featurize(seqs, **kwargs))
-        
+
         featurizer_1 = list(self.featurizers.values())[1]
         onehot = featurizer_1.featurize(seqs, **kwargs)
         X.append(onehot.reshape(onehot.shape[0], -1))
-        
+
         X = np.concatenate(X, axis=1)
 
         return X
+
 
 class MSAAugmentedFeaturizer(CombinatorialFeaturizer):
     """Class for combining MSA features with one-hot encoding.
@@ -141,7 +143,7 @@ class MSAAugmentedFeaturizer(CombinatorialFeaturizer):
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = MSAAugmentedFeaturizer(
         protein='protein1',       # Name of protein for caching
         use_cache=True           # Whether to cache results
@@ -169,17 +171,18 @@ class MSAAugmentedFeaturizer(CombinatorialFeaturizer):
             np.ndarray: Combined MSA and one-hot features.
         """
         X = []
-        
+
         featurizer_0 = list(self.featurizers.values())[0]
         X.append(featurizer_0.featurize(seqs, **kwargs))
-        
+
         featurizer_1 = list(self.featurizers.values())[1]
         onehot = featurizer_1.featurize(seqs, **kwargs)
         X.append(onehot.reshape(onehot.shape[0], -1))
-        
+
         X = np.concatenate(X, axis=1)
 
         return X
+
 
 class OnehotAndGeorgievFeaturizer(CombinatorialFeaturizer):
     """Class for combining one-hot and Georgiev encodings.
@@ -189,7 +192,7 @@ class OnehotAndGeorgievFeaturizer(CombinatorialFeaturizer):
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = OnehotAndGeorgievFeaturizer(
         protein='protein1',       # Name of protein for caching
         use_cache=True           # Whether to cache results
@@ -205,6 +208,7 @@ class OnehotAndGeorgievFeaturizer(CombinatorialFeaturizer):
         """
         super().__init__(featurize_methods, **kwargs)
 
+
 class OnehotAndAAIdxFeaturizer(CombinatorialFeaturizer):
     """Class for combining one-hot and amino acid index encodings.
 
@@ -213,7 +217,7 @@ class OnehotAndAAIdxFeaturizer(CombinatorialFeaturizer):
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = OnehotAndAAIdxFeaturizer(
         protein='protein1',       # Name of protein for caching
         use_cache=True           # Whether to cache results
@@ -227,7 +231,8 @@ class OnehotAndAAIdxFeaturizer(CombinatorialFeaturizer):
             featurize_methods (list): List of featurizer names to combine.
             **kwargs: Additional arguments passed to each featurizer.
         """
-        super().__init__(featurize_methods, **kwargs)      
+        super().__init__(featurize_methods, **kwargs)
+
 
 class OnehotAndESMLogitsFeaturizer(CombinatorialFeaturizer):
     """Class for combining one-hot encoding with ESM logits.
@@ -237,7 +242,7 @@ class OnehotAndESMLogitsFeaturizer(CombinatorialFeaturizer):
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = OnehotAndESMLogitsFeaturizer(
         protein='protein1',       # Name of protein for caching
         use_cache=True           # Whether to cache results
@@ -252,7 +257,7 @@ class OnehotAndESMLogitsFeaturizer(CombinatorialFeaturizer):
             **kwargs: Additional arguments passed to each featurizer.
         """
         super().__init__(featurize_methods, **kwargs)
-    
+
     def featurize(self, seqs, **kwargs):
         """
         Featurizes sequences using one-hot encoding and ESM logits.
@@ -265,18 +270,19 @@ class OnehotAndESMLogitsFeaturizer(CombinatorialFeaturizer):
             np.ndarray: Combined one-hot and ESM logits features.
         """
         X = []
-        
+
         featurizer_0 = list(self.featurizers.values())[0]
         x = featurizer_0.featurize(seqs, **kwargs)
         zero_vectors = np.zeros((x.shape[0], 1, x.shape[2]))
         X.append(np.concatenate((zero_vectors, x, zero_vectors), axis=1))
-        
+
         featurizer_1 = list(self.featurizers.values())[1]
         X.append(featurizer_1.featurize(seqs, **kwargs))
-        
+
         X = np.concatenate(X, axis=-1)
 
         return X
+
 
 class OnehotAndESMMSALogitsFeaturizer(CombinatorialFeaturizer):
     """Class for combining one-hot encoding with ESM-MSA logits.
@@ -286,7 +292,7 @@ class OnehotAndESMMSALogitsFeaturizer(CombinatorialFeaturizer):
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = OnehotAndESMMSALogitsFeaturizer(
         protein='protein1',       # Name of protein for caching
         use_cache=True           # Whether to cache results
@@ -301,7 +307,7 @@ class OnehotAndESMMSALogitsFeaturizer(CombinatorialFeaturizer):
             **kwargs: Additional arguments passed to each featurizer.
         """
         super().__init__(featurize_methods, **kwargs)
-    
+
     def featurize(self, seqs, **kwargs):
         """
         Featurizes sequences using one-hot encoding and ESM-MSA logits.
@@ -314,19 +320,19 @@ class OnehotAndESMMSALogitsFeaturizer(CombinatorialFeaturizer):
             np.ndarray: Combined one-hot and ESM-MSA logits features.
         """
         X = []
-        
+
         featurizer_0 = list(self.featurizers.values())[0]
         x = featurizer_0.featurize(seqs, **kwargs)
         zero_vectors = np.zeros((x.shape[0], 1, x.shape[2]))
         X.append(np.concatenate((zero_vectors, x), axis=1))
-        
+
         featurizer_1 = list(self.featurizers.values())[1]
         X.append(featurizer_1.featurize(seqs, **kwargs))
-        
+
         X = np.concatenate(X, axis=-1)
 
         return X
-    
+
 
 class OnehotAndESM2EmbedFeaturizer(CombinatorialFeaturizer):
     """Class for combining one-hot encoding with ESM2 embeddings.
@@ -336,7 +342,7 @@ class OnehotAndESM2EmbedFeaturizer(CombinatorialFeaturizer):
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = OnehotAndESM2EmbedFeaturizer(
         protein='protein1',       # Name of protein for caching
         use_cache=True           # Whether to cache results
@@ -364,17 +370,18 @@ class OnehotAndESM2EmbedFeaturizer(CombinatorialFeaturizer):
             np.ndarray: Combined one-hot and ESM2 embedding features.
         """
         X = []
-        
+
         featurizer_0 = list(self.featurizers.values())[0]
         onehot = featurizer_0.featurize(seqs, **kwargs)
         X.append(onehot.reshape(onehot.shape[0], -1))
-        
+
         featurizer_1 = list(self.featurizers.values())[1]
         X.append(featurizer_1.featurize(seqs, **kwargs))
-        
+
         X = np.concatenate(X, axis=1)
 
         return X
+
 
 class OnehotAndESM2_15bEmbedFeaturizer(CombinatorialFeaturizer):
     """Class for combining one-hot encoding with ESM2 embeddings.
@@ -384,7 +391,7 @@ class OnehotAndESM2_15bEmbedFeaturizer(CombinatorialFeaturizer):
         featurizers (dict): Dictionary mapping featurizer names to instances.
 
     Example Usage:
-    
+
     featurizer = OnehotAndESM2EmbedFeaturizer(
         protein='protein1',       # Name of protein for caching
         use_cache=True           # Whether to cache results
@@ -412,14 +419,14 @@ class OnehotAndESM2_15bEmbedFeaturizer(CombinatorialFeaturizer):
             np.ndarray: Combined one-hot and ESM2 embedding features.
         """
         X = []
-        
+
         featurizer_0 = list(self.featurizers.values())[0]
         onehot = featurizer_0.featurize(seqs, **kwargs)
         X.append(onehot.reshape(onehot.shape[0], -1))
-        
+
         featurizer_1 = list(self.featurizers.values())[1]
         X.append(featurizer_1.featurize(seqs, **kwargs))
-        
+
         X = np.concatenate(X, axis=1)
 
         return X

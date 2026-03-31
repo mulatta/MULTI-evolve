@@ -6,6 +6,7 @@ from multievolve.featurizers.base_featurizers import BaseFeaturizer
 from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
 
+
 class ForgeESMFeaturizer(BaseFeaturizer):
     """Class for generating ESM Forge-based protein embeddings or log probabilities.
 
@@ -58,7 +59,13 @@ class ForgeESMFeaturizer(BaseFeaturizer):
             model_type (str): Type of featurization model.
             **kwargs: Additional keyword arguments.
         """
-        super().__init__(model_type=model_type, protein=protein, use_cache=use_cache, flatten_features=flatten_features, **kwargs)
+        super().__init__(
+            model_type=model_type,
+            protein=protein,
+            use_cache=use_cache,
+            flatten_features=flatten_features,
+            **kwargs,
+        )
         self.model = model
         self.url = url
         if token is None:
@@ -68,26 +75,27 @@ class ForgeESMFeaturizer(BaseFeaturizer):
 
     def process_single_protein(self, sequence, model, url, token, output_type):
         """Process a single protein sequence using ESM Forge.
-        
+
         Args:
             sequence (str): Protein sequence to process.
             model (str): ESM model name.
             url (str): Forge API URL.
             token (str): Forge API access token.
             output_type (str): Either "log_probabilities" or "sequence_representations".
-            
+
         Returns:
             numpy.ndarray: Protein embeddings or log probabilities.
-            
+
         Raises:
             ValueError: If output_type is invalid.
             RuntimeError: If API call fails.
         """
         if output_type not in ["log_probabilities", "sequence_representations"]:
-            raise ValueError("output_type must be 'log_probabilities' or 'sequence_representations'")
-         
+            raise ValueError(
+                "output_type must be 'log_probabilities' or 'sequence_representations'"
+            )
+
         try:
-            
             from esm.sdk.forge import ESM3ForgeInferenceClient
             from esm.sdk.api import ESMProtein, LogitsConfig
 
@@ -104,36 +112,37 @@ class ForgeESMFeaturizer(BaseFeaturizer):
             return np.array(logits_output.logits.sequence.numpy())
         elif output_type == "sequence_representations":
             embeddings_float32 = logits_output.embeddings.squeeze().float()
-            return (np.array(embeddings_float32.numpy()).mean(axis=0))
-        
+            return np.array(embeddings_float32.numpy()).mean(axis=0)
 
     def process_proteins_parallel(self, seqs, model, url, token, output_type):
         """Process a list of protein sequences in parallel using ESM Forge.
-        
+
         Args:
             seqs (list): List of protein sequences to process.
             model (str): ESM model name to use.
             url (str): Forge API URL.
             token (str): Forge API access token.
             output_type (str): Type of output features.
-            
+
         Returns:
             list: List of protein embeddings as numpy arrays.
         """
         with ProcessPoolExecutor(max_workers=16) as executor:
             future_to_index = {
-                executor.submit(self.process_single_protein, seq, model, url, token, output_type): i 
+                executor.submit(
+                    self.process_single_protein, seq, model, url, token, output_type
+                ): i
                 for i, seq in enumerate(seqs)
             }
-            
+
             results = [None] * len(seqs)
-            
+
             for future in concurrent.futures.as_completed(future_to_index):
                 index = future_to_index[future]
                 results[index] = future.result()
-                
+
         return results
-        
+
     def custom_featurizer(self, seqs, **kwargs):
         """
         Featurizes sequences using ESM Forge.
@@ -145,7 +154,13 @@ class ForgeESMFeaturizer(BaseFeaturizer):
         Returns:
             np.ndarray: Array of featurized sequences.
         """
-        X = self.process_proteins_parallel(seqs, model=self.model, url=self.url, token=self.token, output_type=self.output_type)
+        X = self.process_proteins_parallel(
+            seqs,
+            model=self.model,
+            url=self.url,
+            token=self.token,
+            output_type=self.output_type,
+        )
         return X
 
 
@@ -197,7 +212,17 @@ class Forge_ESMC_6B_EmbedFeaturizer(ForgeESMFeaturizer):
             output_type (str): Output format type.
             **kwargs: Additional keyword arguments.
         """
-        super().__init__(model_type="esmc_6b", protein=protein, use_cache=use_cache, flatten_features=flatten_features, output_type=output_type, model=model, url=url, token=token, **kwargs)
+        super().__init__(
+            model_type="esmc_6b",
+            protein=protein,
+            use_cache=use_cache,
+            flatten_features=flatten_features,
+            output_type=output_type,
+            model=model,
+            url=url,
+            token=token,
+            **kwargs,
+        )
 
 
 class ESMBaseFeaturizer(BaseFeaturizer):
@@ -271,9 +296,7 @@ class ESMBaseFeaturizer(BaseFeaturizer):
             # Featurize as sequence embeddings (last hidden layer).
             last_layer = len(model.layers)
             with torch.no_grad():
-                results = model(
-                    batch_tokens.to(self.device), repr_layers=[last_layer]
-                )
+                results = model(batch_tokens.to(self.device), repr_layers=[last_layer])
             token_representations = results["representations"][last_layer]
 
             sequence_representations = []
@@ -297,6 +320,7 @@ class ESMBaseFeaturizer(BaseFeaturizer):
             np.ndarray: Array of featurized sequences.
         """
         from esm import pretrained
+
         model_loc_to_model = {}
         for model_location in self.model_locations:
             model, alphabet = pretrained.load_model_and_alphabet(model_location)
